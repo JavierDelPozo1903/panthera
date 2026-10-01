@@ -13,6 +13,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          // React va en su propio trozo: si queda en el principal, el de r3f lo importa en
+          // círculo y en producción React aún no está definido al evaluarse (pantalla negra).
+          react: ['react', 'react-dom', 'react/jsx-runtime', 'zustand'],
           three: ['three'],
           r3f: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
           physics: ['@react-three/rapier'],

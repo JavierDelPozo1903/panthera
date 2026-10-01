@@ -9,6 +9,9 @@ import { exploration, FOG_CELLS, isRevealed } from '../systems/exploration';
 import { wind } from '../systems/wind';
 import { getWorldMapImage } from './mapImage';
 import { WILD_COLOR } from './Minimap';
+import { matriarch } from '../ai/matriarchBrain';
+import { dens } from '../systems/dens';
+import { progression } from '../systems/progression';
 import { wildLions } from '../entities/npc/wildLions';
 import { markStrength, residentsOf, scentMarks, territories } from '../world/territories';
 
@@ -189,6 +192,60 @@ export function FullMap() {
         ctx.fill();
         ctx.stroke();
       }
+
+      // Guaridas reclamadas (puntos de reaparición).
+      for (const d of dens) {
+        if (!d.claimed) continue;
+        const [x, y] = toPx(d.x, d.z);
+        ctx.fillStyle = '#f3ead7';
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 9);
+        ctx.lineTo(x + 9, y + 7);
+        ctx.lineTo(x - 9, y + 7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = INK;
+        ctx.fillText(d.name, x, y + 22);
+      }
+      // Jefe: La Matriarca.
+      if (matriarch.initialized) {
+        const [x, y] = toPx(matriarch.arena.x, matriarch.arena.z);
+        const beaten = matriarch.state === 'defeated';
+        ctx.fillStyle = beaten ? '#8c8272' : '#7a1f15';
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#eaddc2';
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y + 4);
+        ctx.lineTo(x - 5, y - 4);
+        ctx.lineTo(x - 2, y);
+        ctx.lineTo(x, y - 6);
+        ctx.lineTo(x + 2, y);
+        ctx.lineTo(x + 5, y - 4);
+        ctx.lineTo(x + 6, y + 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#7a1f15';
+        ctx.fillText(beaten ? 'La Matriarca (vencida)' : 'La Matriarca · desde los 2 años', x, y - 16);
+      }
+      // Esencia caída.
+      if (progression.dropped) {
+        const [x, y] = toPx(progression.dropped.x, progression.dropped.z);
+        ctx.fillStyle = '#d9a43a';
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = INK;
+        ctx.fillText('tu esencia', x, y - 10);
+      }
+      ctx.fillStyle = INK;
 
       // Coalición, hijos y leones ajenos a la vista.
       for (const l of wildLions) {
