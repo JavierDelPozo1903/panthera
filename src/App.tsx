@@ -9,6 +9,7 @@ import { FullMap } from './ui/FullMap';
 import { HUD } from './ui/HUD';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { JournalPanel } from './ui/JournalPanel';
+import { DenPanel } from './ui/DenPanel';
 import { LoadingScreen } from './ui/LoadingScreen';
 import { MainMenu } from './ui/MainMenu';
 import { PauseMenu } from './ui/PauseMenu';
@@ -63,6 +64,7 @@ export default function App() {
       {(phase === 'playing' || phase === 'paused') && <HUD />}
       {phase === 'playing' && <JournalPanel />}
       {phase === 'playing' && <FullMap />}
+      {phase === 'playing' && <DenPanel />}
       {phase === 'paused' && <PauseMenu />}
       {phase === 'dead' && <DeathScreen />}
     </div>

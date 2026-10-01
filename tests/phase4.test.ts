@@ -10,6 +10,7 @@ import { useGame } from '../src/core/store';
 import { createWildLion, playerCubs, wildLions } from '../src/entities/npc/wildLions';
 import { player, resetNeeds, resetPlayer } from '../src/entities/player/playerState';
 import { combat, playerCombatMove, resetCombat, startCombat, updateCombat } from '../src/systems/combat';
+import { resetDefense, updateDefense } from '../src/systems/playerDefense';
 import { inherit, randomTraits, setPlayerTraits } from '../src/systems/genetics';
 import { resetLifeRole, updateLifeRole } from '../src/systems/lifeRole';
 import { availableMate, bioDays, playerRepro, resetReproduction, updateReproduction } from '../src/systems/reproduction';
@@ -30,6 +31,7 @@ beforeEach(() => {
   initTerritories(world, 0, 0, 7);
   resetWildBrain();
   resetCombat();
+  resetDefense();
   resetBody(playerBody);
   resetReproduction();
   resetPlayer(0, world.heightAt(0, 0), 0);
@@ -108,6 +110,7 @@ describe('combate', () => {
       // El jugador alterna zarpazos y mordiscos de cara al rival.
       playerCombatMove(i % 3 === 0 ? 'bite' : 'swipe');
       updateCombat(world, DT, rng);
+      updateDefense(DT);
       result = combat.result;
     }
     expect(result).toBe('win');

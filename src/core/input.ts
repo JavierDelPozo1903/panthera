@@ -23,10 +23,17 @@ export type Action =
   | 'interact'
   | 'journal'
   | 'map'
-  | 'swipe'
-  | 'bite'
-  | 'threat'
-  | 'social';
+  | 'social'
+  | 'attack'
+  | 'heavy'
+  | 'ability1'
+  | 'ability2'
+  | 'ability3'
+  | 'ability4'
+  | 'lockOn'
+  | 'dodge'
+  | 'guard'
+  | 'heal';
 
 export const KEY_BINDINGS: Record<Action, string[]> = {
   forward: ['KeyW', 'ArrowUp'],
@@ -39,8 +46,9 @@ export const KEY_BINDINGS: Record<Action, string[]> = {
   roar: ['KeyR'],
   rest: ['KeyZ'],
   walk: ['KeyX'],
-  camLeft: ['KeyQ'],
-  camRight: ['KeyE'],
+  // Q y E quedan para habilidades e interacción: la cámara se gira con el ratón.
+  camLeft: [],
+  camRight: [],
   documentary: ['KeyV'],
   timeFast: ['KeyT'],
   pause: ['Escape', 'KeyP'],
@@ -48,10 +56,18 @@ export const KEY_BINDINGS: Record<Action, string[]> = {
   interact: ['KeyE'],
   journal: ['KeyJ'],
   map: ['KeyM'],
-  swipe: ['KeyG'],
-  bite: ['KeyB'],
-  threat: ['KeyF'],
   social: ['KeyY'],
+  // Combate souls (los botones del ratón llegan como Mouse0/1/2 con el puntero capturado).
+  attack: ['Mouse0'],
+  heavy: ['Mouse2', 'KeyB'],
+  ability1: ['KeyQ'],
+  ability2: ['KeyR'],
+  ability3: ['KeyF'],
+  ability4: ['KeyG'],
+  lockOn: ['Tab', 'Mouse1'],
+  dodge: ['Space'],
+  guard: ['ShiftLeft', 'ShiftRight'],
+  heal: ['Digit1'],
 };
 
 /** Botones del mapeo estándar de la Gamepad API. */
@@ -68,10 +84,6 @@ const PAD_BINDINGS: Partial<Record<Action, number[]>> = {
   sprint: [7, 10], // RT / L3
   pause: [9], // Start
   hints: [8], // Select
-  // En combate los botones frontales cambian de función (el controlador ignora los demás).
-  swipe: [2], // X / Cuadrado
-  bite: [1], // B / Círculo
-  threat: [3], // Y / Triángulo
   social: [11], // R3
 };
 
@@ -126,10 +138,19 @@ class InputManager {
       this.dragging = false;
     };
     const onMouseDown = (e: MouseEvent) => {
+      if (this.pointerLocked) {
+        // Con el puntero capturado, los botones del ratón son acciones de combate.
+        const code = `Mouse${e.button}`;
+        if (e.button === 1) e.preventDefault();
+        for (const a of codeToActions.get(code) ?? []) this.pressed.add(a);
+        this.keys.add(code);
+        return;
+      }
       if (e.button === 0 || e.button === 2) this.dragging = true;
     };
-    const onMouseUp = () => {
+    const onMouseUp = (e: MouseEvent) => {
       this.dragging = false;
+      this.keys.delete(`Mouse${e.button}`);
     };
     const onMouseMove = (e: MouseEvent) => {
       if (this.pointerLocked || this.dragging) {

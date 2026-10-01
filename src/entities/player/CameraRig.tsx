@@ -3,7 +3,8 @@ import { useRapier } from '@react-three/rapier';
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { input } from '../../core/input';
-import { clamp, damp, saturate, smoothstep } from '../../core/math';
+import { clamp, damp, moveTowardsAngle, saturate, smoothstep } from '../../core/math';
+import { lockedPosition } from '../../systems/combat';
 import { INTRO_SECONDS } from '../../ui/IntroOverlay';
 import { useGame, useWorld } from '../../core/store';
 import { mother } from '../npc/npcState';
@@ -113,6 +114,13 @@ export function CameraRig() {
         st.pitch = clamp(st.pitch + look.y * sens, -0.25, 1.25);
         if (input.isDown('camLeft')) st.yaw += 1.8 * dt;
         if (input.isDown('camRight')) st.yaw -= 1.8 * dt;
+        // Objetivo fijado: la cámara se coloca detrás del león mirando al rival.
+        const lock = lockedPosition();
+        if (lock) {
+          const want = Math.atan2(lock.x - player.position.x, lock.z - player.position.z);
+          st.yaw = moveTowardsAngle(st.yaw, want, 5 * dt);
+          st.pitch = damp(st.pitch, 0.26, 4, dt);
+        }
         const zoom = input.consumeZoom();
         if (zoom) st.dist = clamp(st.dist * (1 + zoom * 0.12), MIN_DIST, MAX_DIST);
       }

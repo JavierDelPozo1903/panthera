@@ -20,6 +20,8 @@ import { playerRepro } from '../systems/reproduction';
 import { playerBody } from '../systems/wounds';
 import { createWildLion, wildLions } from '../entities/npc/wildLions';
 import { territories } from '../world/territories';
+import { matriarch } from '../ai/matriarchBrain';
+import { progression } from '../systems/progression';
 
 /**
  * Consola de depuración (solo en desarrollo): `window.__panthera` permite inspeccionar
@@ -55,6 +57,13 @@ export function installDebugHooks(get: unknown): void {
     relocate: (x: number, z: number) => startRelocation(mother.position.clone().set(x, 0, z)),
     wildLions,
     territories,
+    matriarch,
+    progression,
+    /** Lleva al jugador al claro de La Matriarca. */
+    toBoss: () => {
+      const a = matriarch.arena;
+      player.position.set(a.x + 12, world().heightAt(a.x + 12, a.z), a.z);
+    },
     combat,
     playerBody,
     playerRepro,

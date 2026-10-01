@@ -22,7 +22,7 @@ export type PlayerGait =
 /** Acción sostenida que el jugador realiza con la tecla de interacción (E). */
 export type PlayerAction = 'nurse' | 'drink' | 'eat';
 
-export type DeathCause = 'hyenas' | 'starvation' | 'thirst' | 'prey' | 'lions' | 'wounds';
+export type DeathCause = 'hyenas' | 'starvation' | 'thirst' | 'prey' | 'lions' | 'wounds' | 'boss' | 'oldAge';
 
 /** Necesidades vitales [0, 1] (1 = plenamente satisfecha). */
 export interface Needs {
@@ -106,8 +106,8 @@ export function resetNeeds(needs: Needs = DEFAULT_NEEDS): void {
 export function damagePlayer(amount: number, cause: DeathCause): void {
   if (!player.alive) return;
   player.needs.health = Math.max(0, player.needs.health - amount);
-  // Mordiscos de hiena y cornadas dejan heridas (las de pelea las añade el combate).
-  if ((cause === 'hyenas' || cause === 'prey') && amount > 0.02) addWound(playerBody, randomPart(Math.random), amount * 2);
+  // Las cornadas dejan heridas (las de peleas y mordiscos las añade `hitPlayer`).
+  if (cause === 'prey' && amount > 0.02) addWound(playerBody, randomPart(Math.random), amount * 2);
   player.lastDamage = cause;
   player.hurtTimer = 0;
   player.resting = false;

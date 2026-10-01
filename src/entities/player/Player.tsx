@@ -10,7 +10,10 @@ import { adultsFeasting } from '../../ai/director';
 import { distXZ } from '../../ai/steering';
 import { tumbleSibling } from '../../ai/siblingBrain';
 import { availableInteraction } from '../../systems/interactions';
-import { combat, playerCombatAction, playerCombatMove } from '../../systems/combat';
+import { combat, lockedPosition, playerActionId, playerCombatAction, playerCombatMove, toggleLock, castAbility } from '../../systems/combat';
+import { denNear, restAtDen } from '../../systems/dens';
+import { defense, setGuard, startDodge } from '../../systems/playerDefense';
+import { progression } from '../../systems/progression';
 import { playerTraits } from '../../systems/genetics';
 import { availableSocial } from '../../systems/social';
 import { playerBody, woundSpeedFactor } from '../../systems/wounds';
@@ -115,7 +118,7 @@ export function Player() {
     };
   }, [physics, rapier, actor, phys]);
 
-  const st = useMemo(() => ({ roarTimer: 0, markTimer: 0, pitch: 0, roll: 0, cover: 0, ambush: false, actionSfx: 0 }), []);
+  const st = useMemo(() => ({ roarTimer: 0, markTimer: 0, lastActionId: 0, animatedActionId: 0, tearAnim: 0, healTimer: 0, pitch: 0, roll: 0, cover: 0, ambush: false, actionSfx: 0 }), []);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
@@ -157,21 +160,42 @@ export function Player() {
     }
     updateTakedown(dt, 0);
 
-    // --- Combate: zarpazo (G), mordisco (B), amenaza (F) -------------------------------------
+    // --- Combate souls ------------------------------------------------------------------
+    const denOpen = useGame.getState().denOpen;
+    if (input.consume('heal')) eatHealingLeaves();
     if (combat.active) {
-      if (input.consume('swipe')) playerCombatMove('swipe');
-      if (input.consume('bite')) playerCombatMove('bite');
-      if (input.consume('threat')) playerCombatMove('threat');
-      // En plena pelea no hay tiempo para tumbarse, comer ni rugir.
-      for (const a of ['crouch', 'rest', 'interact', 'roar', 'social'] as const) input.consume(a);
+      if (input.consume('lockOn')) toggleLock();
+      if (input.consume('attack')) playerCombatMove('swipe');
+      if (input.consume('heavy')) playerCombatMove('bite');
+      if (input.consume('ability1')) castAbility('charge');
+      if (input.consume('ability2')) castAbility('roar');
+      if (input.consume('ability3')) castAbility('tear');
+      if (input.consume('ability4')) castAbility('fury');
+      if (input.consume('dodge')) {
+        // Esquiva hacia donde se pulsa (o hacia atrás si no se pulsa nada).
+        let ddx = -Math.sin(p.heading);
+        let ddz = -Math.cos(p.heading);
+        if (input.moveMagnitude > 0.1) {
+          const yaw = p.cameraYaw;
+          ddx = Math.sin(yaw) * input.moveZ - Math.cos(yaw) * input.moveX;
+          ddz = Math.cos(yaw) * input.moveZ + Math.sin(yaw) * input.moveX;
+          const l = Math.hypot(ddx, ddz) || 1;
+          ddx /= l;
+          ddz /= l;
+        }
+        startDodge(ddx, ddz);
+      }
+      setGuard(input.isDown('guard') && defense.dodge <= 0 && !combat.dash);
+      // En plena pelea no hay tiempo para tumbarse, comer ni marcar; R y Espacio son de combate.
+      for (const a of ['crouch', 'rest', 'interact', 'roar', 'social', 'jump'] as const) input.consume(a);
       p.crouching = false;
       p.resting = false;
       st.markTimer = 0;
     } else {
-      input.consume('swipe');
-      input.consume('bite');
-      input.consume('threat');
+      for (const a of ['attack', 'heavy', 'ability1', 'ability2', 'ability3', 'ability4', 'lockOn', 'dodge'] as const) input.consume(a);
+      setGuard(false);
     }
+    const frozen = denOpen || defense.stagger > 0;
 
     // --- Acción social (Y): aparearse, aliarse, marcar ------------------------------------------
     if (input.consume('social') && st.roarTimer <= 0 && st.markTimer <= 0) {
@@ -193,7 +217,12 @@ export function Player() {
     }
     if (input.consume('walk')) p.walkMode = !p.walkMode;
     if (input.consume('rest') && p.grounded && !p.swimming) {
-      p.resting = !p.resting;
+      const den = !p.resting ? denNear(p.position.x, p.position.z) : null;
+      if (den) {
+        // Descansar en una guarida: cura y abre el panel de nivel (sin pausar el mundo).
+        restAtDen(den);
+        if (document.pointerLockElement) document.exitPointerLock();
+      } else p.resting = !p.resting;
       p.crouching = false;
       p.action = null;
     }
@@ -261,31 +290,49 @@ export function Player() {
     }
 
     // --- Dirección deseada relativa a la cámara ------------------------------------------
-    const moving = input.moveMagnitude > 0.1 && st.roarTimer <= 0 && st.markTimer <= 0 && !p.action;
+    const moving = input.moveMagnitude > 0.1 && st.roarTimer <= 0 && st.markTimer <= 0 && !p.action && !frozen;
+    const lockPos = lockedPosition();
     if (moving && p.resting) p.resting = false;
     // Capacidades según la edad: un cachorro corre a menos de la mitad y se agota antes.
     const maturity = physicalMaturity(p.ageYears);
     const ability = (0.42 + 0.58 * maturity) * needsSpeedFactor() * woundSpeedFactor(playerBody);
     const top = topSpeedMs(sex) * ability;
     let turnPenalty = 1;
+    // Dirección del desplazamiento (con objetivo fijado, el león encara al rival y se mueve de lado).
+    let mdx = Math.sin(p.heading);
+    let mdz = Math.cos(p.heading);
+    if (lockPos && !frozen) {
+      p.heading = moveTowardsAngle(p.heading, Math.atan2(lockPos.x - p.position.x, lockPos.z - p.position.z), 9 * dt);
+    }
     if (moving) {
       const yaw = p.cameraYaw;
       const dx = Math.sin(yaw) * input.moveZ - Math.cos(yaw) * input.moveX;
       const dz = Math.cos(yaw) * input.moveZ + Math.sin(yaw) * input.moveX;
       const desired = Math.atan2(dx, dz);
-      const turnRate = 6.5 - 4.3 * saturate(p.speed / top);
-      if (p.grounded) p.heading = moveTowardsAngle(p.heading, desired, turnRate * dt);
-      const diff = Math.abs(wrapAngle(desired - p.heading));
-      turnPenalty = Math.max(0.15, Math.cos(Math.min(diff, Math.PI / 2)));
+      if (lockPos) {
+        const l = Math.hypot(dx, dz) || 1;
+        mdx = dx / l;
+        mdz = dz / l;
+      } else {
+        const turnRate = 6.5 - 4.3 * saturate(p.speed / top);
+        if (p.grounded) p.heading = moveTowardsAngle(p.heading, desired, turnRate * dt);
+        const diff = Math.abs(wrapAngle(desired - p.heading));
+        turnPenalty = Math.max(0.15, Math.cos(Math.min(diff, Math.PI / 2)));
+        mdx = Math.sin(p.heading);
+        mdz = Math.cos(p.heading);
+      }
     }
 
     // --- Velocidad objetivo según marcha --------------------------------------------------
-    const wantsSprint = input.isDown('sprint') && !p.exhausted && !p.crouching && !p.swimming && p.needs.energy > 0.08;
+    // En combate, Shift es la guardia: no se esprinta.
+    const wantsSprint = !combat.active && input.isDown('sprint') && !p.exhausted && !p.crouching && !p.swimming && p.needs.energy > 0.08;
     let target = 0;
     if (moving && p.grounded) {
       if (p.swimming) target = L.swimSpeedMs * ability;
       else if (p.crouching) target = L.stalkSpeedMs * ability;
       else if (wantsSprint) target = top;
+      else if (defense.guarding) target = L.walkSpeedMs * ability;
+      else if (lockPos) target = L.trotSpeedMs * 0.8 * ability;
       else if (p.walkMode || (input.analog && input.moveMagnitude < 0.6)) target = L.walkSpeedMs * ability;
       else target = L.trotSpeedMs * ability;
       target *= turnPenalty;
@@ -304,8 +351,17 @@ export function Player() {
     updateStamina(p, sprinting, p.resting, sex, dt, 0.5 + 0.5 * maturity);
 
     // --- Movimiento horizontal con colisiones (Rapier) -------------------------------------
-    let mx = Math.sin(p.heading) * p.speed * dt;
-    let mz = Math.cos(p.heading) * p.speed * dt;
+    let mx = mdx * p.speed * dt;
+    let mz = mdz * p.speed * dt;
+    // Esquiva y embestida sustituyen al desplazamiento normal.
+    if (defense.dodge > 0) {
+      mx = defense.dodgeDirX * 9.5 * dt;
+      mz = defense.dodgeDirZ * 9.5 * dt;
+    }
+    if (combat.dash) {
+      mx = combat.dash.vx * dt;
+      mz = combat.dash.vz * dt;
+    }
     const { collider, controller } = phys;
     if (collider && controller && (mx !== 0 || mz !== 0)) {
       collider.setTranslation({ x: p.position.x, y: p.position.y + 0.75 * s, z: p.position.z });
@@ -399,9 +455,22 @@ export function Player() {
     st.roarTimer = Math.max(0, st.roarTimer - dt);
     st.markTimer = Math.max(0, st.markTimer - dt);
     const fightMove = combat.active ? playerCombatAction() : null;
+    const actionId = playerActionId();
+    if (combat.active && actionId !== st.lastActionId) {
+      st.lastActionId = actionId;
+      // El desgarro no deja acción en curso: se anima como una ráfaga de zarpazos.
+      if (!fightMove) st.tearAnim = 0.55;
+    }
+    st.tearAnim = Math.max(0, st.tearAnim - dt);
+    st.healTimer = Math.max(0, st.healTimer - dt);
     let clip: LionClipName;
-    if (!p.grounded) clip = 'jump';
+    if (!p.grounded || defense.dodge > 0) clip = 'jump';
+    else if (combat.dash) clip = 'run';
     else if (fightMove) clip = fightMove === 'threat' ? 'snarl' : fightMove;
+    else if (st.tearAnim > 0) clip = 'swipe';
+    else if (defense.stagger > 0) clip = 'snarl';
+    else if (defense.guarding) clip = 'stalkIdle';
+    else if (st.healTimer > 0) clip = 'eat';
     else if (combat.active && p.speed < 0.6) clip = 'snarl';
     else if (st.roarTimer > 0) clip = 'roar';
     else if (st.markTimer > 0) clip = 'mark';
@@ -415,6 +484,10 @@ export function Player() {
     else clip = 'run';
 
     const prev = actor.currentClip;
+    if ((clip === 'swipe' || clip === 'bite') && st.animatedActionId !== actionId) {
+      st.animatedActionId = actionId;
+      actor.restart(clip);
+    }
     const fade =
       clip === 'rest' || prev === 'rest' ? 0.9 : clip === 'jump' || prev === 'jump' || clip === 'swipe' || clip === 'bite' ? 0.12 : 0.28;
     actor.play(clip, fade);
@@ -424,6 +497,21 @@ export function Player() {
 
     syncTransform();
   }, -40);
+
+  /** Hojas medicinales (tecla 1): curan un 35 % de la vida; se rellenan en la guarida. */
+  function eatHealingLeaves() {
+    const p = player;
+    if (!p.alive || st.healTimer > 0 || p.needs.health >= 0.999) return;
+    if (progression.healingCharges <= 0) {
+      events.emit('subtitle', { text: 'No te quedan hojas medicinales: descansa en una guarida', seconds: 2 });
+      return;
+    }
+    progression.healingCharges--;
+    p.needs.health = Math.min(1, p.needs.health + 0.35);
+    st.healTimer = 0.9;
+    events.emit('sfx', { sound: 'chew', x: p.position.x, y: p.position.y, z: p.position.z, volume: 0.6 });
+    events.emit('subtitle', { text: `Mascas hojas medicinales (quedan ${progression.healingCharges})`, seconds: 1.8 });
+  }
 
   /** Al caer de un salto sobre un hermano: emboscada de juego (entrena la caza). */
   function landPounce() {

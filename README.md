@@ -36,13 +36,17 @@ Abre `http://localhost:5173`. Otros scripts:
 | E               | X                   | Mamar / beber / comer (contextual)  |
 | R               | Y                   | Rugir · de cachorro, llamar a mamá  |
 | Y               | R3                  | Aliarse / aparearse / marcar territorio (contextual) |
-| G / B / F       | X / B / Y (en pelea)| Pelea: zarpazo / mordisco / amenaza |
+| Clic / Clic D (o B) | —               | En pelea: zarpazo (encadena 4) / mordisco |
+| Q · R · F · G   | —                   | En pelea: embestida · rugido aturdidor · desgarro · furia del rey |
+| Tab / rueda     | —                   | Fijar objetivo                      |
+| Espacio / Shift | —                   | En pelea: esquivar / bloquear (justo a tiempo: contragolpe) |
+| 1               | —                   | Hojas medicinales                   |
+| Z junto a una guarida | —             | Descansar: curarse y subir de nivel |
 | Z               | Cruceta abajo       | Tumbarse a descansar                |
 | J               | Cruceta arriba      | Diario de campo                     |
 | M               | —                   | Mapa del territorio                 |
 | V               | RB                  | Cámara documental                   |
 | T (mantener)    | LT                  | Acelerar el tiempo ×120             |
-| Q / E           | —                   | Girar la cámara                     |
 | Esc / P         | Start               | Pausa (ajustes, saltar etapa, salir)|
 | H               | Select              | Mostrar/ocultar ayuda               |
 
@@ -110,12 +114,24 @@ objetivos enseña las mecánicas mientras un **director de eventos** marca el ri
 - **Legado**: al morir puedes continuar como un hermano superviviente o como un hijo o hija de dos
   años o más, que conserva sus rasgos heredados.
 
+### Núcleo souls
+
+- **Combate**: fijar objetivo, esquiva con invulnerabilidad, bloqueo con contragolpe perfecto, aguante,
+  postura que se rompe y golpe de gracia, cadena de zarpazos y combos (zarpazo, zarpazo, mordisco:
+  desgarro del cuello). Barra de habilidades estilo MOBA con recargas visibles.
+- **Progresión**: la esencia del linaje se gana cazando, peleando, con hitos y jefes; se gasta en las
+  guaridas para subir de nivel (atributos y habilidades con rangos I–III).
+- **Muerte**: al caer se despierta en la última guarida y la esencia queda en el rastro; morir de viejo
+  sigue llevando al modo legado.
+- **Primer jefe**: La Matriarca, reina espectral de un clan de hienas, en un claro de la sabana (a partir
+  de los 2 años). Dos fases, hienas espectrales, embestida, aullido del eclipse y paso de sombra.
+
 `npm test` ejecuta simulaciones sin navegador (Vitest): detección de las presas y éxito de la caza
 cooperativa (≈33 % de día y ≈65 % de noche sin luna con tres leonas), y la Fase 4 (herencia, heridas
 y cicatrices, intrusión territorial, peleas, expulsión, conquista y camadas).
 
 En desarrollo, `window.__panthera` expone utilidades de depuración (`startHunt()`, `hyenas3()`,
-`fight(edad)`, `setAge(años)`, `milestone(id)`, territorios, leones ajenos y estado del jugador).
+`fight(edad)`, `setAge(años)`, `toBoss()`, `milestone(id)`, territorios, leones ajenos y estado del jugador).
 
 Decisiones de arquitectura relevantes:
 

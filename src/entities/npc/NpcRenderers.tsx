@@ -15,9 +15,10 @@ import { visibleManeDarkness } from '../../systems/genetics';
 
 /** Pendiente suavizada por actor. */
 const pitchOf = new WeakMap<AnimalActor, number>();
+const nonceOf = new WeakMap<AnimalActor, number>();
 
 /** Copia la simulación de un agente a su actor: posición, rumbo, inclinación y animación. */
-function syncActor(actor: AnimalActor, agent: Agent, world: WorldData, dt: number): void {
+export function syncActor(actor: AnimalActor, agent: Agent, world: WorldData, dt: number): void {
   const reach = 0.8 * actor.scale;
   const fx = Math.sin(agent.heading);
   const fz = Math.cos(agent.heading);
@@ -27,7 +28,10 @@ function syncActor(actor: AnimalActor, agent: Agent, world: WorldData, dt: numbe
   pitchOf.set(actor, pitch);
 
   const fade = agent.clip === 'rest' || actor.currentClip === 'rest' || agent.clip === 'die' ? 0.9 : 0.3;
-  actor.play(agent.clip, fade);
+  if (agent.clipNonce !== undefined && agent.clipNonce !== nonceOf.get(actor)) {
+    nonceOf.set(actor, agent.clipNonce);
+    actor.restart(agent.clip);
+  } else actor.play(agent.clip, fade);
   actor.matchSpeed(agent.speed);
   actor.update(dt);
   actor.object.position.copy(agent.position);

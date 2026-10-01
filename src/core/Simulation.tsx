@@ -1,5 +1,6 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import lionData from '../data/lion.json';
 import { director, updateDirector } from '../ai/director';
 import { updateHyenas } from '../ai/hyenaBrain';
 import { updateMother } from '../ai/motherBrain';
@@ -7,6 +8,8 @@ import { updatePrey } from '../ai/preyBrain';
 import { updatePride } from '../ai/prideBrain';
 import { updateSiblings } from '../ai/siblingBrain';
 import { updateWildLions } from '../ai/wildLionBrain';
+import { clearHyenas } from '../ai/hyenaBrain';
+import { resetBossAfterDeath, updateMatriarch } from '../ai/matriarchBrain';
 import { updateCarcasses } from '../entities/carcass/carcassState';
 import { mother, siblings } from '../entities/npc/npcState';
 import { wildLions } from '../entities/npc/wildLions';
@@ -15,7 +18,10 @@ import { updateExploration } from '../systems/exploration';
 import { journal, recordMilestone } from '../systems/journal';
 import { updateNeeds, type Activity } from '../systems/needs';
 import { updateObjectiveTriggers } from '../systems/objectives';
-import { updateCombat } from '../systems/combat';
+import { abortCombat, furyActive, tickAbilities, updateCombat } from '../systems/combat';
+import { denState, lastDen } from '../systems/dens';
+import { resetDefense, updateDefense } from '../systems/playerDefense';
+import { dropEssence, gainEssence, tryRecoverEssence } from '../systems/progression';
 import { updateLifeRole } from '../systems/lifeRole';
 import { updateReproduction } from '../systems/reproduction';
 import { BODY_PART_LABEL, partWithArticle, playerBody, updateWounds } from '../systems/wounds';
@@ -32,7 +38,12 @@ const CAUSE_TEXT = {
   prey: 'Herido de muerte por una presa',
   lions: 'Muerto en una pelea con otros leones',
   wounds: 'Sus heridas se infectaron',
+  boss: 'Abatido por una leyenda',
+  oldAge: 'Murió de viejo, después de una vida entera',
 } as const;
+
+/** Segundos entre la caída y la reaparición en la guarida. */
+const RESPAWN_SECONDS = 4.5;
 
 /**
  * Simulación de la vida: necesidades del jugador, IA (madre, hermanos, hienas), presas,
@@ -42,7 +53,13 @@ const CAUSE_TEXT = {
 export function Simulation() {
   const world = useWorld();
   const rng = useMemo(() => mulberry32(Date.now() & 0xffff), []);
-  const st = useMemo(() => ({ deathTimer: 0, lastDays: clock.totalDays, exploreTimer: 0 }), []);
+  const st = useMemo(
+    () => ({ deathTimer: 0, lastDays: clock.totalDays, exploreTimer: 0, respawn: -1, kills: -1, fights: -1 }),
+    [],
+  );
+
+  // Cada hito del diario también da un poco de esencia.
+  useEffect(() => events.on('milestone', () => void gainEssence(40, 'Hito')), []);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
@@ -65,7 +82,16 @@ export function Simulation() {
         nearFamily,
       });
       updatePlayerWounds(gameHours);
+      const longevity = lionData.longevity[useGame.getState().sex === 'male' ? 'maleYears' : 'femaleYears'].max;
+      if (player.ageYears >= longevity) {
+        player.lastDamage = 'oldAge';
+        player.needs.health = 0;
+      }
       if (player.needs.health <= 0.001) die();
+      tryRecoverEssence(player.position.x, player.position.z);
+    } else if (st.respawn >= 0) {
+      st.respawn -= dt;
+      if (st.respawn < 0) respawn();
     } else {
       st.deathTimer += dt;
       if (st.deathTimer > 3.5 && useGame.getState().phase === 'playing') {
@@ -90,6 +116,16 @@ export function Simulation() {
     updateCarcasses(dt);
     updateWildLions(world, dt, rng);
     updateCombat(world, dt, rng);
+    updateMatriarch(world, dt);
+    updateDefense(dt, furyActive() ? 2 : 1);
+    tickAbilities(dt);
+    // Esencia por cazar y por ganar peleas.
+    if (st.kills < 0) st.kills = journal.stats.kills;
+    if (st.fights < 0) st.fights = journal.stats.fightsWon;
+    if (journal.stats.kills > st.kills) gainEssence(120 * (journal.stats.kills - st.kills), 'Caza');
+    if (journal.stats.fightsWon > st.fights) gainEssence(220 * (journal.stats.fightsWon - st.fights), 'Pelea');
+    st.kills = journal.stats.kills;
+    st.fights = journal.stats.fightsWon;
     updateLifeRole(world, dt, rng);
     updateReproduction(world, gameHours / 24, dt, rng);
     if (gameHours > 0) updateWildBodies(gameHours);
@@ -123,6 +159,15 @@ export function Simulation() {
     player.action = null;
     player.causeOfDeath = player.lastDamage ?? 'starvation';
     st.deathTimer = 0;
+    if (player.causeOfDeath !== 'oldAge') {
+      // Muerte souls: la esencia queda aquí y se despierta en la última guarida.
+      dropEssence(player.position.x, player.position.z);
+      st.respawn = RESPAWN_SECONDS;
+      events.emit('banner', { text: 'Has caído', tone: 'death', seconds: 3.5 });
+      journal.entries.push({ id: `fall-${Date.now()}`, text: `${CAUSE_TEXT[player.causeOfDeath]}. Despiertas en la guarida.`, day: clock.day + 1, time: clock.formatTime(), age: '' });
+      director.danger = 0;
+      return;
+    }
     journal.entries.push({
       id: 'death',
       text: CAUSE_TEXT[player.causeOfDeath],
@@ -132,6 +177,31 @@ export function Simulation() {
     });
     events.emit('player:died', { cause: player.causeOfDeath });
     director.danger = 0;
+  }
+
+  function respawn() {
+    st.respawn = -1;
+    abortCombat();
+    resetBossAfterDeath(world);
+    clearHyenas();
+    const den = lastDen();
+    const x = den ? den.x : mother.home.x;
+    const z = den ? den.z : mother.home.z;
+    player.position.set(x, world.heightAt(x, z), z);
+    player.alive = true;
+    player.causeOfDeath = null;
+    player.lastDamage = null;
+    player.action = null;
+    player.resting = true;
+    player.speed = 0;
+    const n = player.needs;
+    n.health = 0.7;
+    n.satiety = Math.max(n.satiety, 0.45);
+    n.hydration = Math.max(n.hydration, 0.45);
+    n.energy = Math.max(n.energy, 0.6);
+    resetDefense();
+    denState.lastDenId = den?.id ?? denState.lastDenId;
+    events.emit('subtitle', { text: `Despiertas en la ${den ? den.name.toLowerCase() : 'madriguera'}. Tu esencia quedó donde caíste`, seconds: 4 });
   }
 
   return null;

@@ -52,10 +52,10 @@ const NEEDS: NeedDef[] = [
 ];
 
 /** Barras de necesidades: hambre, sed, energía, salud y vínculo social. */
-export function NeedsPanel() {
+export function NeedsPanel({ vertical = false }: { vertical?: boolean }) {
   const needs = useTicker(() => ({ ...player.needs }), 6);
   return (
-    <div className="flex gap-3 rounded-lg bg-umber/55 px-3 py-2 backdrop-blur-sm">
+    <div className={`flex ${vertical ? 'flex-col gap-1.5' : 'gap-3'} rounded-lg bg-umber/55 px-3 py-2 backdrop-blur-sm`}>
       {NEEDS.map((n) => {
         const value = needs[n.key];
         const critical = value < 0.2;

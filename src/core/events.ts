@@ -26,6 +26,14 @@ export interface GameEvents {
   subtitle: { text: string; seconds?: number };
   /** Hito del diario de campo. */
   milestone: { id: string; text: string };
+  /** Esencia del linaje ganada. */
+  essence: { amount: number; reason: string };
+  /** Golpe importante en combate (para el HUD): parada, rotura de postura, crítico. */
+  'combat:feat': { text: string; kind: 'parry' | 'break' | 'critical' | 'combo' | 'dodge' };
+  /** Aviso de un ataque fuerte de un jefe (texto a mano en las primeras veces). */
+  'boss:telegraph': { text: string };
+  /** Gran rótulo central: «LEYENDA ABATIDA», «HAS CAÍDO». */
+  banner: { text: string; tone: 'victory' | 'death' | 'info'; seconds?: number };
 }
 
 type Handler<T> = (payload: T) => void;

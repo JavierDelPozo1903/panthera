@@ -9,6 +9,7 @@ import { Simulation } from './core/Simulation';
 import { Carcasses } from './entities/carcass/Carcasses';
 import { Hyenas, MotherLion, PrideLions, Siblings, WildLions } from './entities/npc/NpcRenderers';
 import { PreyRenderer } from './entities/prey/PreyRenderer';
+import { SoulsRenderers } from './entities/boss/SoulsRenderers';
 import { CameraRig } from './entities/player/CameraRig';
 import { Player } from './entities/player/Player';
 import { Atmosphere } from './world/Atmosphere';
@@ -64,6 +65,7 @@ export function GameCanvas() {
           <Siblings />
           <PrideLions />
           <WildLions />
+          <SoulsRenderers />
           <PreyRenderer />
           <Hyenas />
           <Carcasses />

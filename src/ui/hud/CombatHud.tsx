@@ -1,9 +1,7 @@
-import lionData from '../../data/lion.json';
 import { player } from '../../entities/player/playerState';
 import { combat, type CombatMove } from '../../systems/combat';
 import { useTicker } from '../useTicker';
 
-const C = lionData.combat;
 
 const POSTURE_LABEL: Record<CombatMove, string> = {
   swipe: 'Zarpazo',
@@ -18,7 +16,8 @@ interface FighterView {
   isPlayer: boolean;
   health: number;
   stamina: number;
-  morale: number;
+  posture: number;
+  staggered: boolean;
   action: CombatMove | null;
   cooldown: number;
   out: boolean;
@@ -34,12 +33,14 @@ function readCombat() {
       isPlayer: f.isPlayer,
       health: f.isPlayer ? player.needs.health : (f.agent?.health ?? 0),
       stamina: f.stamina,
-      morale: f.morale,
+      posture: f.posture,
+      staggered: f.stagger > 0,
       action: f.action,
       cooldown: f.cooldown,
       out: f.out,
     })),
     lastHit: combat.elapsed - combat.lastHitTime < 2.2 ? combat.lastHit : '',
+    boss: combat.reason === 'boss',
   };
 }
 
@@ -68,34 +69,24 @@ function FighterCard({ f }: { f: FighterView }) {
         <Bar value={f.health} color="#c0584a" className="h-2" />
         <div className="grid grid-cols-2 gap-1.5">
           <Bar value={f.stamina} color="#e3cfa4" />
-          <Bar value={f.morale} color="#8fae5a" />
+          <Bar value={f.posture} color={f.staggered ? '#f3ead7' : '#d9b26a'} />
         </div>
       </div>
     </div>
   );
 }
 
-function MoveKey({ k, label, cost, ready }: { k: string; label: string; cost: number; ready: boolean }) {
-  return (
-    <div className={`flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1 text-sm ${ready ? 'text-bone' : 'text-bone/40'}`}>
-      <kbd className={`rounded px-1.5 text-xs font-bold ${ready ? 'bg-sand text-umber' : 'bg-bone/20 text-bone/60'}`}>{k}</kbd>
-      {label}
-      <span className="text-[10px] text-bone/50">−{Math.round(cost * 100)}</span>
-    </div>
-  );
-}
 
 /**
- * Interfaz de pelea: salud, aliento y moral de cada luchador (tu bando a la izquierda,
- * los rivales a la derecha), tu postura y los golpes disponibles.
+ * Interfaz de pelea contra leones y hienas: salud, aliento y postura de cada luchador (tus
+ * aliados a la izquierda, los rivales a la derecha). Tu propia vida y tus habilidades van en
+ * la barra inferior; contra un jefe se usa la barra del jefe.
  */
 export function CombatHud() {
   const state = useTicker(readCombat, 15);
-  if (!state.active) return null;
-  const mine = state.fighters.filter((f) => f.side === 'player');
+  if (!state.active || state.boss) return null;
+  const mine = state.fighters.filter((f) => f.side === 'player' && !f.isPlayer);
   const foes = state.fighters.filter((f) => f.side === 'enemy');
-  const me = mine.find((f) => f.isPlayer);
-  const ready = (move: CombatMove) => !!me && !me.action && me.cooldown <= 0 && me.stamina >= C[move].stamina;
 
   return (
     <>
@@ -124,21 +115,11 @@ export function CombatHud() {
             Aliento
           </span>
           <span>
-            <span className="mr-1 inline-block h-1.5 w-3 rounded-full bg-[#8fae5a]" />
-            Moral
+            <span className="mr-1 inline-block h-1.5 w-3 rounded-full bg-[#d9b26a]" />
+            Postura
           </span>
         </div>
         <p className="h-7 font-serif text-xl italic text-bone drop-shadow">{state.lastHit}</p>
-      </div>
-      <div className="absolute inset-x-0 bottom-44 flex animate-fadeIn flex-col items-center gap-1.5">
-        <div className="flex flex-wrap justify-center gap-2">
-          <MoveKey k="G" label="Zarpazo" cost={C.swipe.stamina} ready={ready('swipe')} />
-          <MoveKey k="B" label="Mordisco" cost={C.bite.stamina} ready={ready('bite')} />
-          <MoveKey k="F" label="Amenaza" cost={C.threat.stamina} ready={ready('threat')} />
-        </div>
-        <p className="text-xs text-bone/60 drop-shadow">
-          Un zarpazo durante la preparación de un mordisco lo interrumpe · aléjate para huir
-        </p>
       </div>
     </>
   );

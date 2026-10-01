@@ -21,6 +21,9 @@ import { combat } from '../systems/combat';
 import { allies } from '../entities/npc/wildLions';
 import { journal } from '../systems/journal';
 import { CombatHud } from './hud/CombatHud';
+import { AbilityBar, EssenceCounter } from './hud/AbilityBar';
+import { Banner, BossBar, CombatFeats, EclipseVeil } from './hud/SoulsHud';
+import { denNear } from '../systems/dens';
 import { LionStatusPanel } from './hud/LionStatusPanel';
 import { BIOMES } from '../world/biomes';
 import { DangerVignette } from './hud/DangerVignette';
@@ -112,13 +115,21 @@ export function HUD() {
           ▸▸ Tiempo acelerado ×{hud.timeScale}
         </div>
       )}
+      <EclipseVeil />
       <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
         <InteractionPrompt />
-        <NeedsPanel />
+        <AbilityBar />
+      </div>
+      <div className="absolute bottom-5 right-5 flex flex-col items-end gap-3">
+        <EssenceCounter />
+        <NeedsPanel vertical />
       </div>
       <Toasts />
       <TakedownBar />
       <CombatHud />
+      <BossBar />
+      <CombatFeats />
+      <Banner />
       {showHints && <ControlsHint />}
       <Subtitles />
       {import.meta.env.DEV && <FpsMonitor />}
@@ -137,6 +148,7 @@ function InteractionPrompt() {
       const i = availableInteraction(world);
       if (i) list.push({ key: 'E', label: i.label });
     }
+    if (!player.resting && denNear(player.position.x, player.position.z)) list.push({ key: 'Z', label: 'Descansar en la guarida' });
     const social = availableSocial();
     // Marcar es siempre posible para un macho adulto: solo se anuncia si no hay nada más.
     if (social && (social.kind !== 'mark' || list.length === 0)) list.push({ key: 'Y', label: social.label });
@@ -300,8 +312,12 @@ const HINTS: [string, string][] = [
   ['E', 'Mamar / beber / comer'],
   ['R', 'Rugir · de cachorro: llamar a mamá'],
   ['Y', 'Aliarse / aparearse / marcar'],
-  ['G · B · F', 'Pelea: zarpazo · mordisco · amenaza'],
-  ['Z', 'Tumbarse a descansar'],
+  ['Clic · Clic D', 'Zarpazo · mordisco'],
+  ['Q · R · F · G', 'Habilidades (en pelea)'],
+  ['Tab', 'Fijar objetivo'],
+  ['Espacio · Shift', 'En pelea: esquivar · bloquear'],
+  ['1', 'Hojas medicinales'],
+  ['Z', 'Descansar · en la guarida: subir de nivel'],
   ['J', 'Diario de campo'],
   ['M', 'Mapa del territorio'],
   ['V', 'Cámara documental'],
@@ -312,7 +328,7 @@ const HINTS: [string, string][] = [
 
 function ControlsHint() {
   return (
-    <div className="absolute bottom-5 right-5 rounded-lg bg-umber/55 px-4 py-3 text-[11px] backdrop-blur-sm">
+    <div className="absolute right-5 top-1/2 -translate-y-1/2 rounded-lg bg-umber/55 px-4 py-3 text-[11px] backdrop-blur-sm">
       <ul className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         {HINTS.map(([key, label]) => (
           <li key={key} className="contents">
@@ -346,7 +362,7 @@ function Subtitles() {
   return (
     <div
       key={line.id}
-      className="absolute bottom-28 left-1/2 -translate-x-1/2 animate-fadeIn rounded bg-black/55 px-4 py-1.5 font-serif text-lg italic text-bone"
+      className="absolute bottom-[290px] left-1/2 -translate-x-1/2 animate-fadeIn rounded bg-black/55 px-4 py-1.5 font-serif text-lg italic text-bone"
       role="status"
     >
       {line.text}

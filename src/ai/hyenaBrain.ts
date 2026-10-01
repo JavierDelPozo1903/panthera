@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { clock } from '../core/clock';
 import { events } from '../core/events';
 import { createAgent, hyenas, mother, siblings, type HyenaAgent } from '../entities/npc/npcState';
-import { damagePlayer, player } from '../entities/player/playerState';
+import { player } from '../entities/player/playerState';
+import { hitPlayer } from '../systems/playerDefense';
 import { HYENA_SCALE } from '../entities/hyena/hyenaRig';
 import { journal } from '../systems/journal';
 import { detectionRadius, visibility } from '../systems/stealth';
@@ -198,7 +199,7 @@ export function updateHyenas(world: WorldData, dt: number, rng: () => number): v
         else if (h.biteCooldown <= 0) {
           h.biteCooldown = 1.5;
           events.emit('sfx', { sound: 'bite', x: t.position.x, y: t.position.y + 0.3, z: t.position.z });
-          if (t.id === 'player') damagePlayer(BITE_DAMAGE_PLAYER, 'hyenas');
+          if (t.id === 'player') hitPlayer(BITE_DAMAGE_PLAYER, 'hyenas');
           else {
             const s = siblings.find((x) => x.id === t.id);
             if (s) {

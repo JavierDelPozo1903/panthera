@@ -69,6 +69,15 @@ export class AnimalActor {
     this.current = name;
   }
 
+  /** Vuelve a lanzar un clip desde el principio (golpes seguidos del mismo tipo). */
+  restart(name: LionClipName, fade = 0.08): void {
+    if (name !== this.current) {
+      this.play(name, fade);
+      return;
+    }
+    this.actions[name].reset().play();
+  }
+
   /** Ajusta la velocidad de reproducción del clip de locomoción a la velocidad real (m/s). */
   matchSpeed(speed: number): void {
     const nominal = CLIP_NOMINAL_SPEED[this.current];

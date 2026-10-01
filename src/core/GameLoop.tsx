@@ -5,7 +5,7 @@ import { director } from '../ai/director';
 import { advanceAge } from '../systems/aging';
 import { sharedUniforms } from '../world/atmosphereState';
 import { clock, FAST_FORWARD_MULTIPLIER } from './clock';
-import { finishIntro, pauseGame, registerCanvas, requestPointerLock, resumeGame, saveNow } from './gameFlow';
+import { closeDenPanel, finishIntro, pauseGame, registerCanvas, requestPointerLock, resumeGame, saveNow } from './gameFlow';
 import { installDebugHooks } from './debug';
 import { input } from './input';
 import { perfStats } from './perfStats';
@@ -39,7 +39,8 @@ export function GameLoop() {
     // Si el navegador libera el puntero (Esc), se pausa la partida.
     const onLockChange = () => {
       const locked = document.pointerLockElement === el;
-      if (state.wasLocked && !locked) pauseGame();
+      // Al abrir el panel de la guarida se suelta el puntero a propósito: no se pausa.
+      if (state.wasLocked && !locked && !useGame.getState().denOpen) pauseGame();
       state.wasLocked = locked;
     };
     el.addEventListener('pointerdown', onPointerDown);
@@ -60,12 +61,14 @@ export function GameLoop() {
     const game = useGame.getState();
     if (game.phase === 'playing') {
       if (input.consume('pause')) {
-        if (game.mapOpen) useGame.setState({ mapOpen: false });
+        if (game.denOpen) closeDenPanel();
+        else if (game.mapOpen) useGame.setState({ mapOpen: false });
         else if (game.journalOpen) useGame.setState({ journalOpen: false });
         else pauseGame();
       }
       if (input.consume('documentary')) game.toggleDocumentary();
       if (input.consume('hints')) game.updateSettings({ showHints: !game.settings.showHints });
+      if (game.denOpen && input.consume('rest')) closeDenPanel();
       if (input.consume('journal')) useGame.setState({ journalOpen: !game.journalOpen, mapOpen: false });
       if (input.consume('map')) useGame.setState({ mapOpen: !game.mapOpen, journalOpen: false });
       clock.dayLengthMinutes = game.settings.dayLengthMinutes;

@@ -4,6 +4,10 @@ import { clearHyenas } from '../ai/hyenaBrain';
 import { resetGroupHunt } from '../ai/huntBrain';
 import { initHerds } from '../ai/preyBrain';
 import { resetWildBrain } from '../ai/wildLionBrain';
+import { initMatriarch } from '../ai/matriarchBrain';
+import { resetDens } from '../systems/dens';
+import { resetDefense } from '../systems/playerDefense';
+import { progression, resetProgression, ATTRIBUTES } from '../systems/progression';
 import { resetCombat } from '../systems/combat';
 import { randomTraits, setPlayerTraits } from '../systems/genetics';
 import { lifeRoleState, resetLifeRole } from '../systems/lifeRole';
@@ -75,6 +79,10 @@ function setupNewLitter(seed: number): void {
   resetReproduction();
   resetBody(playerBody);
   setPlayerTraits(randomTraits(rng));
+  resetProgression();
+  resetDens([{ id: 'natal', name: 'Guarida de la Acacia', x: den.motherX, z: den.motherZ, claimed: true }], 'natal');
+  initMatriarch(world, den.motherX, den.motherZ);
+  resetDefense();
   resetExploration();
   setAge(START_AGE_YEARS);
   bumpFamily();
@@ -150,6 +158,12 @@ export async function continueLife(): Promise<void> {
     resetReproduction(l.repro);
     useGame.setState({ lifeRole: l.lifeRole });
   }
+  if (save.souls) {
+    resetProgression(save.souls.progression);
+    resetDens(save.souls.dens, save.souls.lastDenId);
+    initMatriarch(world, save.family.home[0], save.family.home[1]);
+    resetDefense();
+  }
   resetPlayer(save.player.x, save.player.y, save.player.z, save.player.heading);
   player.stamina = save.player.stamina;
   resetNeeds(save.player.needs);
@@ -202,9 +216,14 @@ export function continueAsChild(child: WildLion): void {
   resetPlayer(child.position.x, world.heightAt(child.position.x, child.position.z), child.position.z, child.heading);
   resetNeeds({ satiety: 0.7, hydration: 0.7, energy: 0.8, health: 1, bond: 0.6 });
   setPlayerTraits(child.traits);
+  const prev = { level: progression.level, attributes: { ...progression.attributes }, relics: [...progression.relics] };
   useGame.setState({ sex: child.sex, phase: 'playing', deathInfo: null });
   // Los hijos machos ya han dejado la manada; las hijas siguen en ella.
   inheritLife(child.sex, child.sex === 'male' ? 'nomad' : 'pride');
+  const attributes = { ...prev.attributes };
+  for (const a of ATTRIBUTES) attributes[a] = 10 + Math.floor((prev.attributes[a] - 10) / 3);
+  resetProgression({ level: Math.max(1, Math.ceil(prev.level / 3)), attributes, relics: prev.relics.slice(0, 1) });
+  resetDefense();
   setAge(child.ageYears);
   bumpFamily();
   recordMilestone(`legacy:${child.name}`, `Legado: la estirpe continúa con ${child.name}, ${child.sex === 'male' ? 'tu hijo' : 'tu hija'}`);
@@ -245,4 +264,14 @@ export async function abandonLife(): Promise<void> {
   await clearSave();
   useGame.getState().setHasSave(false);
   prepareMenu();
+}
+
+/** Cierra el panel de la guarida y devuelve el control al jugador. */
+export function closeDenPanel(): void {
+  if (!useGame.getState().denOpen) return;
+  useGame.setState({ denOpen: false });
+  player.resting = false;
+  input.flush();
+  requestPointerLock();
+  void saveNow();
 }

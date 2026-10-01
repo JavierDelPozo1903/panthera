@@ -66,6 +66,8 @@ interface GameState {
   /** Mapa completo abierto. */
   mapOpen: boolean;
   lifeRole: LifeRole;
+  /** Panel de la guarida (subir de nivel y habilidades) abierto. */
+  denOpen: boolean;
 
   setPhase: (phase: GamePhase) => void;
   setLoadingProgress: (p: number) => void;
@@ -95,6 +97,7 @@ export const useGame = create<GameState>((set) => ({
   journalOpen: false,
   mapOpen: false,
   lifeRole: 'pride',
+  denOpen: false,
 
   setPhase: (phase) => set({ phase }),
   setLoadingProgress: (loadingProgress) => set({ loadingProgress }),

@@ -53,6 +53,8 @@ export interface Agent<S extends string = string> {
   health: number;
   /** Animación pedida por la IA. */
   clip: LionClipName;
+  /** Cambia para reiniciar un clip de un solo uso (golpes seguidos). */
+  clipNonce?: number;
 }
 
 export function createAgent<S extends string>(id: string, name: string, sex: Sex, ageYears: number, state: S): Agent<S> {
