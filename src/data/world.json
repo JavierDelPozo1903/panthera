@@ -1,0 +1,16 @@
+{
+  "_comment": "Configuración del mundo y del reloj de simulación.",
+  "seed": 20260930,
+  "sizeMeters": 4096,
+  "cells": 1024,
+  "chunkCells": 64,
+  "waterLevel": 0,
+  "maxGrassHeight": 1.6,
+  "time": {
+    "dayLengthMinutes": 20,
+    "yearLengthHours": 2,
+    "lunarCycleDays": 8,
+    "startHour": 6.4,
+    "fastForwardMultiplier": 120
+  }
+}

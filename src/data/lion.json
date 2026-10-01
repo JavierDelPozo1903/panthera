@@ -1,0 +1,137 @@
+{
+  "_comment": "Constantes biológicas de Panthera leo. Todas las mecánicas de simulación leen de aquí; no dupliques estos números en el código.",
+  "weightKg": {
+    "male": { "min": 150, "max": 250, "mean": 190 },
+    "female": { "min": 110, "max": 180, "mean": 126 }
+  },
+  "bodySize": {
+    "_comment": "Escala del modelo respecto al macho adulto (altura a la cruz ~1,2 m).",
+    "maleScale": 1.0,
+    "femaleScale": 0.86,
+    "cubScale": 0.28
+  },
+  "locomotion": {
+    "walkSpeedMs": 1.2,
+    "trotSpeedMs": 3.6,
+    "stalkSpeedMs": 0.9,
+    "swimSpeedMs": 1.3,
+    "topSpeedKmh": { "male": 52, "female": 58, "min": 50, "max": 60 },
+    "sprintDurationSec": { "min": 8, "max": 12, "male": 9, "female": 11 },
+    "sprintRecoverySec": 50,
+    "sprintRecoveryRestingSec": 22,
+    "sprintExhaustedThreshold": 0.3,
+    "jumpHeightM": 1.6,
+    "jumpLengthM": 9
+  },
+  "rest": {
+    "hoursPerDay": { "min": 16, "max": 20 },
+    "_comment": "Si no descansa pierde energía y rendimiento (Fase 2)."
+  },
+  "food": {
+    "dailyNeedKg": { "male": 7, "female": 5 },
+    "maxMealKg": { "min": 30, "max": 40 },
+    "_comment": "Puede atiborrarse y ayunar varios días."
+  },
+  "needs": {
+    "_comment": "Tasas por HORA DE JUEGO (1 h de juego ≈ 50 s reales con el día de 20 min). Acelerar el tiempo también consume necesidades.",
+    "satietyLossPerHour": { "cub": 0.075, "adult": 0.03 },
+    "hydrationLossPerHour": { "cub": 0.055, "adult": 0.022 },
+    "energyPerHour": { "rest": 0.55, "idle": -0.02, "walk": -0.07, "trot": -0.16, "run": -0.9, "swim": -0.25 },
+    "healthLossPerHourStarving": 0.14,
+    "healthRegenPerHour": 0.06,
+    "bondLossPerHourAlone": 0.12,
+    "bondGainPerHourWithFamily": 0.35,
+    "_actions": "Tasas por SEGUNDO REAL mientras se realiza la acción.",
+    "nursePerSecond": { "satiety": 0.06, "hydration": 0.04 },
+    "drinkPerSecond": 0.08,
+    "eatPerSecond": 0.05,
+    "weaningYears": 0.6
+  },
+  "survival": {
+    "_comment": "Más de la mitad de los cachorros muere antes del año: hienas, leopardos, machos infanticidas, hambre.",
+    "cubFirstYearMortality": 0.6
+  },
+  "water": {
+    "daysWithoutDrinking": 4,
+    "waterFromPreyFraction": 0.5
+  },
+  "prey": {
+    "preferredWeightKg": { "min": 190, "max": 550 },
+    "preferred": ["ñu", "cebra", "búfalo", "órix", "jirafa"],
+    "medium": ["impala", "facóquero", "gacela"]
+  },
+  "hunting": {
+    "baseSuccess": { "min": 0.15, "max": 0.3 },
+    "modifiers": {
+      "night": 0.08,
+      "moonless": 0.07,
+      "cover": 0.1,
+      "group": 0.12
+    },
+    "chargeDistanceM": { "min": 20, "max": 30 }
+  },
+  "reproduction": {
+    "estrusDays": 4,
+    "gestationDays": 110,
+    "litterSize": { "min": 1, "max": 4 },
+    "weaningMonths": { "min": 6, "max": 8 },
+    "_cycle": "Días entre celos de una leona sin crías (aprox.).",
+    "estrusIntervalDays": 45,
+    "minBreedingYears": { "female": 3.5, "male": 4 }
+  },
+  "combat": {
+    "_comment": "Daño en fracción de salud del defensor para fuerzas iguales. Tiempos en segundos reales.",
+    "swipe": { "windup": 0.3, "damage": 0.05, "cooldown": 0.75, "stamina": 0.07, "range": 2.4 },
+    "bite": { "windup": 0.6, "damage": 0.13, "cooldown": 1.5, "stamina": 0.16, "range": 1.9 },
+    "threat": { "windup": 0.8, "morale": 0.1, "cooldown": 1.2, "stamina": 0.03 },
+    "counterMultiplier": 1.6,
+    "staminaRegen": 0.12,
+    "fleeHealth": 0.18,
+    "escapeDistance": 28
+  },
+  "wounds": {
+    "_comment": "Tasas por hora de juego.",
+    "bleedPerHour": 0.03,
+    "bleedHours": 2,
+    "healPerHour": 0.04,
+    "infectionChancePerHour": 0.04,
+    "infectedDrainPerHour": 0.05,
+    "scarThreshold": 0.35
+  },
+  "territory": {
+    "radiusM": 520,
+    "markLifeDays": 1.5,
+    "roarHearingM": 1600,
+    "intrusionGraceSeconds": 10
+  },
+  "maturity": {
+    "femaleYears": 4,
+    "maleDispersalYears": { "min": 2, "max": 4 },
+    "malePrideTakeoverYears": { "min": 5, "max": 8 },
+    "prideTenureYears": { "min": 2, "max": 4 },
+    "maneGrowthYears": { "start": 1, "full": 5 }
+  },
+  "longevity": {
+    "femaleYears": { "min": 15, "max": 18 },
+    "maleYears": { "min": 12, "max": 14 }
+  },
+  "lifeStages": [
+    { "id": "cub", "label": "Cachorro", "fromMonths": 0, "toMonths": 6 },
+    { "id": "juvenile", "label": "Juvenil", "fromMonths": 6, "toMonths": 24 },
+    { "id": "subadult", "label": "Subadulto", "fromMonths": 24, "toMonths": 48 },
+    { "id": "adult", "label": "Adulto", "fromMonths": 48, "toMonths": 120 },
+    { "id": "elder", "label": "Vejez", "fromMonths": 120, "toMonths": 216 }
+  ],
+  "facts": [
+    "Un león descansa entre 16 y 20 horas al día: ahorrar energía es parte de su estrategia.",
+    "Un macho adulto pesa de media 190 kg; una hembra, unos 126 kg.",
+    "Alcanzan 50–60 km/h, pero solo aguantan el sprint unos cientos de metros.",
+    "Solo entre el 15 y el 30 % de las cacerías terminan con éxito.",
+    "La melena del macho crece desde el primer año y se completa hacia los cinco. Cuanto más oscura, más fuerte es el león.",
+    "Un rugido puede oírse a varios kilómetros: sirve para reunir a la manada y advertir a los rivales.",
+    "Un león puede devorar 30–40 kg de carne de una sentada y pasar después varios días sin comer.",
+    "La gestación dura unos 110 días y las camadas son de 1 a 4 cachorros.",
+    "Las leonas cazan mejor de noche y sin luna: la oscuridad es su aliada.",
+    "Los machos jóvenes son expulsados de la manada entre los 2 y los 4 años y viven como nómadas."
+  ]
+}

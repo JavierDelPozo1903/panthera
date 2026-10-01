@@ -1,0 +1,9 @@
+node_modules
+dist
+*.local
+.vite
+.DS_Store
+
+# Material de referencia (no se versiona)
+*.pdf
+.claude/settings.local.json

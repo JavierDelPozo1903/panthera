@@ -1,0 +1,96 @@
+{
+  "_comment": "Presas de la sabana. Velocidades en m/s, aceleración en m/s², distancias en m. El león (50–60 km/h ≈ 14–16 m/s) solo atrapa a una presa rápida si arranca muy cerca: de ahí la importancia del acecho.",
+  "species": {
+    "impala": {
+      "label": "Impala",
+      "weightKg": 50,
+      "meatFraction": 0.5,
+      "topSpeed": 19,
+      "accel": 4.5,
+      "walk": 1.1,
+      "scale": 0.74,
+      "herdSize": [
+        10,
+        20
+      ],
+      "sightRange": 90,
+      "reaction": [
+        0.3,
+        0.6
+      ],
+      "struggle": 0.22,
+      "biome": "woodland"
+    },
+    "zebra": {
+      "label": "Cebra",
+      "weightKg": 300,
+      "meatFraction": 0.55,
+      "topSpeed": 15.5,
+      "accel": 3.5,
+      "walk": 1.2,
+      "scale": 1.12,
+      "herdSize": [
+        8,
+        14
+      ],
+      "sightRange": 110,
+      "reaction": [
+        0.4,
+        0.8
+      ],
+      "struggle": 0.42,
+      "biome": "grassland"
+    },
+    "wildebeest": {
+      "label": "Ñu",
+      "weightKg": 230,
+      "meatFraction": 0.55,
+      "topSpeed": 16,
+      "accel": 3.6,
+      "walk": 1.2,
+      "scale": 1.05,
+      "herdSize": [
+        15,
+        28
+      ],
+      "sightRange": 100,
+      "reaction": [
+        0.4,
+        0.9
+      ],
+      "struggle": 0.36,
+      "biome": "grassland"
+    },
+    "warthog": {
+      "label": "Facóquero",
+      "weightKg": 70,
+      "meatFraction": 0.55,
+      "topSpeed": 12.5,
+      "accel": 3,
+      "walk": 0.8,
+      "scale": 0.52,
+      "herdSize": [
+        3,
+        5
+      ],
+      "sightRange": 55,
+      "reaction": [
+        0.5,
+        1
+      ],
+      "struggle": 0.3,
+      "biome": "woodland"
+    }
+  },
+  "herds": {
+    "count": 16,
+    "spawnRadius": 420,
+    "despawnRadius": 520,
+    "detailRadius": 160
+  },
+  "_capture": "Peso máximo (kg) que un león puede derribar solo, según su madurez física [0..1].",
+  "maxSoloPreyKg": {
+    "atMaturity0": 40,
+    "atMaturity1": 320
+  }
+}
