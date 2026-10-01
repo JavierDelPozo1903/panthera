@@ -3,7 +3,8 @@ import { useWorld } from '../core/store';
 import { carcasses } from '../entities/carcass/carcassState';
 import { hyenas, mother, pride, siblings } from '../entities/npc/npcState';
 import { wildLions } from '../entities/npc/wildLions';
-import { matriarch } from '../ai/matriarchBrain';
+import { bosses } from '../ai/bossEngine';
+import { isRegionOpen, regions } from '../world/regions';
 import { progression } from '../systems/progression';
 import { markStrength, scentMarks, territories } from '../world/territories';
 
@@ -157,7 +158,13 @@ export function Minimap({ size = 176 }: { size?: number }) {
       }
       for (const c of carcasses) if (c.meatKg > 0.3) dot(toMap(c.position.x, c.position.z, false), 3.5, '#8a2a1c');
       // La Matriarca (fijada al borde si está lejos) y la esencia caída.
-      if (matriarch.initialized && matriarch.state !== 'defeated') dot(toMap(matriarch.arena.x, matriarch.arena.z, true), 5, '#7a1f15');
+      // El próximo jefe (el de una región abierta que aún no has vencido) se fija al borde.
+      for (const b of bosses) {
+        if (!b.initialized || b.state === 'defeated') continue;
+        const region = regions.find((r) => r.radius > 0 && Math.hypot(r.center.x - b.arena.x, r.center.z - b.arena.z) < r.radius);
+        if (region && !isRegionOpen(region)) continue;
+        dot(toMap(b.arena.x, b.arena.z, true), 5, '#7a1f15');
+      }
       if (progression.dropped) dot(toMap(progression.dropped.x, progression.dropped.z, true), 4, '#f2c46b');
       // Leones ajenos: aliados e hijos siempre; el resto solo si están cerca.
       for (const l of wildLions) {

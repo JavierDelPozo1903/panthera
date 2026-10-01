@@ -39,7 +39,7 @@ export function resetDens(list: Den[], lastDenId = 'natal'): void {
 
 export function addDen(den: Den): void {
   const existing = dens.find((d) => d.id === den.id);
-  if (existing) Object.assign(existing, den);
+  if (existing) Object.assign(existing, { ...den, claimed: existing.claimed || den.claimed });
   else dens.push({ ...den });
 }
 

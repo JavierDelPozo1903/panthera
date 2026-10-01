@@ -29,6 +29,8 @@ export interface LionAppearance {
   furTint?: number;
   /** Variante de pelaje: el león blanco de Timbavati. */
   coat?: 'normal' | 'white';
+  /** Rosetas de leopardo (para El Fantasma). */
+  pattern?: 'rosettes';
 }
 
 /** Escala global del modelo según sexo y edad. */
@@ -72,7 +74,9 @@ export function createLionMesh(app: LionAppearance, material: THREE.Material) {
   // Paleta
   const tint = app.furTint ?? 0;
   const white = app.coat === 'white';
-  const fur = srgb(white ? 0xeee4cf : app.sex === 'male' ? 0xcfa56b : 0xd8b47e).offsetHSL(tint * 0.02, 0, tint * 0.04);
+  const rosettes = app.pattern === 'rosettes';
+  const fur = srgb(rosettes ? 0xd9a24a : white ? 0xeee4cf : app.sex === 'male' ? 0xcfa56b : 0xd8b47e).offsetHSL(tint * 0.02, 0, tint * 0.04);
+  const rosette = srgb(0x2a1a10);
   const belly = srgb(0xf1e4c4);
   const dark = srgb(0x2b1d15);
   const nose = srgb(0x4a2c26);
@@ -87,6 +91,11 @@ export function createLionMesh(app: LionAppearance, material: THREE.Material) {
     if (youth > 0.2) {
       const s = Math.sin(p.x * 41 + p.z * 23) * Math.sin(p.z * 37 - p.y * 29);
       if (s > 0.55) tmpC.lerp(spot, 0.55 * youth);
+    }
+    if (rosettes && n.y > -0.5) {
+      // Anillos oscuros: un patrón de manchas con el centro algo más claro.
+      const r = Math.sin(p.x * 52 + p.z * 31) * Math.sin(p.z * 47 - p.y * 43 + p.x * 9);
+      if (r > 0.42 && r < 0.78) tmpC.lerp(rosette, 0.85);
     }
     return tmpC;
   };

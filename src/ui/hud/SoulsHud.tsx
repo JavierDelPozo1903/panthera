@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { matriarch } from '../../ai/matriarchBrain';
+import { activeBoss, bosses } from '../../ai/bossEngine';
 import { events } from '../../core/events';
 import { combat } from '../../systems/combat';
 import { useTicker } from '../useTicker';
@@ -9,27 +9,27 @@ export function BossBar() {
   const trail = useRef(1);
   const s = useTicker(() => {
     const f = combat.fighters.find((x) => x.isBoss);
-    const health = matriarch.agent.health;
+    const b = activeBoss();
+    const health = b?.agent.health ?? 1;
     // El tramo claro baja con retraso para que se vea el golpe recibido.
     trail.current = Math.max(health, trail.current - 0.006);
     if (health > trail.current) trail.current = health;
     return {
-      on: matriarch.state === 'fight' && combat.active,
+      on: !!b && combat.active,
+      name: b?.def.name ?? '',
+      title: b ? (b.phase === 1 ? b.def.title : `Fase II · ${b.def.phase2Title.toLowerCase()}`) : '',
       health,
       trail: trail.current,
       posture: f?.posture ?? 0,
       broken: !!f && f.stagger > 0 && f.posture >= 0.99,
-      phase: matriarch.phase,
     };
   }, 20);
   if (!s.on) return null;
   return (
     <div className="absolute bottom-[205px] left-1/2 w-[min(860px,60vw)] -translate-x-1/2 animate-fadeIn">
       <div className="mb-1 flex items-baseline justify-between">
-        <span className="font-serif text-3xl italic text-bone drop-shadow-[0_2px_6px_rgba(0,0,0,.8)]">La Matriarca</span>
-        <span className="text-[11px] uppercase tracking-[0.3em] text-[#d9b26a]">
-          {s.phase === 1 ? 'Reina del clan de la Luna Rota' : 'Fase II · la luna rota'}
-        </span>
+        <span className="font-serif text-3xl italic text-bone drop-shadow-[0_2px_6px_rgba(0,0,0,.8)]">{s.name}</span>
+        <span className="text-[11px] uppercase tracking-[0.3em] text-[#d9b26a]">{s.title}</span>
       </div>
       <div className="relative h-3 overflow-hidden border border-[#d9b26a]/80 bg-black/60">
         <div className="absolute inset-y-0 left-0 bg-[#e0b070]/60" style={{ width: `${s.trail * 100}%` }} />
@@ -49,7 +49,7 @@ export function BossBar() {
 
 /** Oscurecimiento del aullido del eclipse. */
 export function EclipseVeil() {
-  const v = useTicker(() => matriarch.eclipse, 30);
+  const v = useTicker(() => Math.max(0, ...bosses.map((b) => b.eclipse)), 30);
   if (v <= 0.01) return null;
   return <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 45%, rgba(40,20,70,${0.15 * v}) 0%, rgba(8,4,18,${0.75 * v}) 75%)` }} />;
 }

@@ -28,6 +28,7 @@ import { updateReproduction } from '../systems/reproduction';
 import { BODY_PART_LABEL, partWithArticle, playerBody, updateWounds } from '../systems/wounds';
 import { pruneMarks } from '../world/territories';
 import { updateQuests } from '../systems/quests';
+import { updateRegions } from '../world/regions';
 import { clock } from './clock';
 import { events } from './events';
 import { mulberry32 } from './math';
@@ -122,6 +123,7 @@ export function Simulation() {
     updateWildLions(world, dt, rng);
     updateCombat(world, dt, rng);
     updateMatriarch(world, dt);
+    updateRegions(dt);
     updateDefense(dt, furyActive() ? 2 : 1);
     tickAbilities(dt);
     // Esencia por cazar y por ganar peleas.

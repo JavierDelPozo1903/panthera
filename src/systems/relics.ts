@@ -2,7 +2,17 @@
  * Reliquias: trofeos de jefes y recompensas de pruebas que el león lleva consigo. Siempre
  * tienen una ventaja y un coste; se equipan en la guarida (2 huecos, 3 a partir del nivel 20).
  */
-export type RelicId = 'matriarchTooth' | 'secretaryFeather' | 'rainStone' | 'duelScar';
+export type RelicId =
+  | 'matriarchTooth'
+  | 'secretaryFeather'
+  | 'rainStone'
+  | 'duelScar'
+  | 'deltaScale'
+  | 'shadowMane'
+  | 'ghostEye'
+  | 'guardianHorn'
+  | 'kingsCrown'
+  | 'seaPearl';
 
 export interface RelicDef {
   id: RelicId;
@@ -46,6 +56,54 @@ export const RELICS: Record<RelicId, RelicDef> = {
     effect: '+15 % de daño del mordisco.',
     cost: '+8 % de daño recibido.',
     source: 'Prueba del guerrero',
+  },
+  deltaScale: {
+    id: 'deltaScale',
+    name: 'Escama del Señor del Delta',
+    lore: 'Dura como la piedra del río y igual de vieja.',
+    effect: '−15 % de daño recibido.',
+    cost: '−10 % de velocidad de esquiva (menos invulnerabilidad).',
+    source: 'Vencer al Señor del Delta',
+  },
+  shadowMane: {
+    id: 'shadowMane',
+    name: 'Mechón de la Sombra',
+    lore: 'Pelo negro que no refleja la luz del desierto.',
+    effect: '+20 % de daño a la postura.',
+    cost: '−8 % de vida máxima.',
+    source: 'Vencer a La Sombra del Kalahari',
+  },
+  ghostEye: {
+    id: 'ghostEye',
+    name: 'Ojo del Fantasma',
+    lore: 'Un ámbar que brilla cuando nadie lo mira.',
+    effect: 'Ventana de contragolpe +0,08 s.',
+    cost: '−5 % de daño.',
+    source: 'Vencer a El Fantasma',
+  },
+  guardianHorn: {
+    id: 'guardianHorn',
+    name: 'Cuerno del Guardián',
+    lore: 'Pesa como una roca y suena como un trueno lejano.',
+    effect: '+25 % de aguante máximo.',
+    cost: 'El aguante se recupera un 10 % más despacio.',
+    source: 'Vencer al Guardián de la Niebla',
+  },
+  kingsCrown: {
+    id: 'kingsCrown',
+    name: 'Corona de huesos',
+    lore: 'La llevaron tres hermanos durante cien años.',
+    effect: '+20 % de daño y la furia se carga el doble de rápido.',
+    cost: '+10 % de daño recibido.',
+    source: 'Derrotar al Rey de Reyes',
+  },
+  seaPearl: {
+    id: 'seaPearl',
+    name: 'Perla de la marea',
+    lore: 'Huele a sal en mitad del continente.',
+    effect: 'Regeneras un poco de vida durante la pelea.',
+    cost: '−1 carga de hojas medicinales.',
+    source: 'Vencer a La Leona del Mar',
   },
 };
 

@@ -253,34 +253,50 @@ export function grantRelic(id: RelicId): boolean {
 }
 
 /** Cargas máximas de hojas medicinales (la piedra de la lluvia añade una). */
-export const maxHealingCharges = (): number => progression.maxHealingCharges + (isEquipped('rainStone') ? 1 : 0);
+export const maxHealingCharges = (): number =>
+  Math.max(1, progression.maxHealingCharges + (isEquipped('rainStone') ? 1 : 0) - (isEquipped('seaPearl') ? 1 : 0));
 
 /** Estadísticas derivadas de atributos, especie y reliquias (1 = valor base). */
 export function derivedStats() {
   const maxHealthPoints = Math.round(
-    (1000 + 30 * attr('resistencia')) * (hasSpecies('barbary') ? 1.15 : 1) * (isEquipped('rainStone') ? 0.92 : 1),
+    (1000 + 30 * attr('resistencia')) *
+      (hasSpecies('barbary') ? 1.15 : 1) *
+      (isEquipped('rainStone') ? 0.92 : 1) *
+      (isEquipped('shadowMane') ? 0.92 : 1),
   );
   return {
     /** Vida máxima en puntos (la salud del juego es una fracción de esta). */
     maxHealthPoints,
     /** Multiplicador del daño recibido: más vida y más resistencia reducen la fracción perdida. */
-    damageTaken: ((1000 / maxHealthPoints) * (isEquipped('duelScar') ? 1.08 : 1)) / (1 + 0.012 * attr('resistencia')),
+    damageTaken:
+      ((1000 / maxHealthPoints) * (isEquipped('duelScar') ? 1.08 : 1) * (isEquipped('deltaScale') ? 0.85 : 1) * (isEquipped('kingsCrown') ? 1.1 : 1)) /
+      (1 + 0.012 * attr('resistencia')),
     /** Multiplicador del daño causado. */
-    damageDealt: (1 + 0.035 * attr('fuerza')) * (isEquipped('secretaryFeather') ? 0.95 : 1),
+    damageDealt:
+      (1 + 0.035 * attr('fuerza')) *
+      (isEquipped('secretaryFeather') ? 0.95 : 1) *
+      (isEquipped('ghostEye') ? 0.95 : 1) *
+      (isEquipped('kingsCrown') ? 1.2 : 1),
     /** Daño extra del mordisco. */
     biteBonus: isEquipped('duelScar') ? 1.15 : 1,
     /** Daño a la postura del rival. */
-    postureDealt: 1 + 0.04 * attr('ferocidad'),
+    postureDealt: (1 + 0.04 * attr('ferocidad')) * (isEquipped('shadowMane') ? 1.2 : 1),
     /** Aguante máximo de combate. */
-    maxStamina: (1 + 0.02 * attr('resistencia')) * (isEquipped('matriarchTooth') ? 0.9 : 1),
-    staminaRegen: 1 + 0.025 * attr('agilidad'),
+    maxStamina: (1 + 0.02 * attr('resistencia')) * (isEquipped('matriarchTooth') ? 0.9 : 1) * (isEquipped('guardianHorn') ? 1.25 : 1),
+    staminaRegen: (1 + 0.025 * attr('agilidad')) * (isEquipped('guardianHorn') ? 0.9 : 1),
+    /** Vida que se recupera por segundo en pelea (perla de la marea). */
+    combatRegen: isEquipped('seaPearl') ? 0.004 : 0,
     /** Segundos de invulnerabilidad de la esquiva. */
-    dodgeIFrames: clamp(0.26 + 0.004 * attr('agilidad') + (isEquipped('secretaryFeather') ? 0.06 : 0), 0.2, 0.56),
+    dodgeIFrames: clamp(
+      (0.26 + 0.004 * attr('agilidad') + (isEquipped('secretaryFeather') ? 0.06 : 0)) * (isEquipped('deltaScale') ? 0.9 : 1),
+      0.2,
+      0.56,
+    ),
     /** Multiplicador del aturdimiento del rugido. */
     roarStun: (isEquipped('matriarchTooth') ? 1.4 : 1) * (hasSpecies('white') ? 1.3 : 1),
     /** Ventana (s) para un bloqueo perfecto. */
-    parryWindow: clamp(0.16 + 0.004 * attr('instinto'), 0.1, 0.32),
-    furyGain: 1 + 0.03 * attr('ferocidad'),
+    parryWindow: clamp(0.16 + 0.004 * attr('instinto') + (isEquipped('ghostEye') ? 0.08 : 0), 0.1, 0.4),
+    furyGain: (1 + 0.03 * attr('ferocidad')) * (isEquipped('kingsCrown') ? 2 : 1),
   };
 }
 

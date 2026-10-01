@@ -17,6 +17,7 @@ import { resetReproduction } from '../systems/reproduction';
 import { playerBody, resetBody } from '../systems/wounds';
 import { restoreWildLions, wildLions, type WildLion } from '../entities/npc/wildLions';
 import { initTerritories, residentsOf, territories } from '../world/territories';
+import { initRegions } from '../world/regions';
 import { resetTakedown } from '../systems/takedown';
 import { resetExploration } from '../systems/exploration';
 import { clearCarcasses } from '../entities/carcass/carcassState';
@@ -85,6 +86,7 @@ function setupNewLitter(seed: number): void {
   resetQuests();
   resetProgression();
   resetDens([{ id: 'natal', name: 'Guarida de la Acacia', x: den.motherX, z: den.motherZ, claimed: true }], 'natal');
+  initRegions(world, den.motherX, den.motherZ);
   initMatriarch(world, den.motherX, den.motherZ);
   resetDefense();
   resetExploration();

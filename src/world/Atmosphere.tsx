@@ -9,6 +9,9 @@ import { updateWind } from '../systems/wind';
 import { atmosphere, computeAtmosphere } from './atmosphereState';
 import { Dust } from './Dust';
 import { createSkyDome, SKY_RADIUS } from './skyDome';
+import { regionAt, regionBlend, regionState } from './regions';
+
+const regionTint = new THREE.Color();
 
 /**
  * Nubosidad del día: escasa en la estación seca, cargada en la húmeda, y variable de un
@@ -76,6 +79,18 @@ export function Atmosphere() {
     );
     const a = atmosphere;
     updateWind(clock.totalDays);
+    // Cada región tiñe la niebla y la luz ambiente (calima del Kalahari, bruma del delta…).
+    let haze = 0;
+    if (regionState.initialized) {
+      const r = regionAt(player.position.x, player.position.z);
+      const k = regionBlend(r, player.position.x, player.position.z);
+      if (k > 0) {
+        regionTint.set(r.tint).convertSRGBToLinear();
+        a.fogColor.lerp(regionTint.clone().multiplyScalar(0.35 + 0.65 * a.day), 0.55 * k);
+        a.hemiSky.lerp(regionTint, 0.25 * k);
+        haze = r.haze * k;
+      }
+    }
 
     const light = keyLight.current;
     if (light) {
@@ -108,8 +123,8 @@ export function Atmosphere() {
     if (fog.current) {
       fog.current.color.copy(a.fogColor);
       // Calima baja al amanecer y al atardecer; más visibilidad a mediodía.
-      fog.current.near = 40 + 110 * a.day * (1 - a.golden * 0.6);
-      fog.current.far = quality.fogFar * (0.55 + 0.45 * a.day) * (1 - 0.35 * a.golden);
+      fog.current.near = (40 + 110 * a.day * (1 - a.golden * 0.6)) * (1 - 0.6 * haze);
+      fog.current.far = quality.fogFar * (0.55 + 0.45 * a.day) * (1 - 0.35 * a.golden) * (1 - 0.7 * haze);
     }
 
     sky.position.copy(camera.position);

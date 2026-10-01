@@ -20,7 +20,7 @@ import { playerRepro } from '../systems/reproduction';
 import { playerBody } from '../systems/wounds';
 import { createWildLion, wildLions } from '../entities/npc/wildLions';
 import { territories } from '../world/territories';
-import { matriarch } from '../ai/matriarchBrain';
+import { bosses, matriarch } from '../ai/matriarchBrain';
 import { progression } from '../systems/progression';
 
 /**
@@ -59,9 +59,13 @@ export function installDebugHooks(get: unknown): void {
     territories,
     matriarch,
     progression,
-    /** Lleva al jugador al claro de La Matriarca. */
-    toBoss: () => {
-      const a = matriarch.arena;
+    bosses,
+    /** Lleva al jugador al claro de un jefe (abre su región). */
+    toBoss: (id = 'matriarch') => {
+      const b = bosses.find((x) => x.def.id === id) ?? matriarch;
+      const order = ['matriarch', 'crocodile', 'shadowLion', 'leopard', 'buffalo', 'kings'];
+      for (const prev of order.slice(0, Math.max(0, order.indexOf(id)))) if (!progression.bossesDefeated.includes(prev)) progression.bossesDefeated.push(prev);
+      const a = b.arena;
       player.position.set(a.x + 12, world().heightAt(a.x + 12, a.z), a.z);
     },
     combat,

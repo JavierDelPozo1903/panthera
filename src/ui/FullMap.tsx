@@ -9,7 +9,9 @@ import { exploration, FOG_CELLS, isRevealed } from '../systems/exploration';
 import { wind } from '../systems/wind';
 import { getWorldMapImage } from './mapImage';
 import { WILD_COLOR } from './Minimap';
-import { matriarch } from '../ai/matriarchBrain';
+import { bosses } from '../ai/bossEngine';
+import { isRegionOpen, regions } from '../world/regions';
+import { visited } from '../systems/quests';
 import { dens } from '../systems/dens';
 import { progression } from '../systems/progression';
 import { wildLions } from '../entities/npc/wildLions';
@@ -210,10 +212,41 @@ export function FullMap() {
         ctx.fillStyle = INK;
         ctx.fillText(d.name, x, y + 22);
       }
-      // Jefe: La Matriarca.
-      if (matriarch.initialized) {
-        const [x, y] = toPx(matriarch.arena.x, matriarch.arena.z);
-        const beaten = matriarch.state === 'defeated';
+      // Regiones del continente.
+      for (const r of regions) {
+        if (r.radius <= 0) continue;
+        const [x, y] = toPx(r.center.x, r.center.z);
+        const rad = (r.radius / world.size) * S;
+        const open = isRegionOpen(r);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, rad, 0, Math.PI * 2);
+        ctx.globalAlpha = open ? 0.16 : 0.32;
+        ctx.fillStyle = open ? r.tint : '#8c8272';
+        ctx.fill();
+        ctx.globalAlpha = 0.9;
+        ctx.setLineDash(open ? [] : [10, 7]);
+        ctx.lineWidth = open ? 2.5 : 2;
+        ctx.strokeStyle = open ? r.tint : '#5a3a18';
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = INK;
+        ctx.font = `600 ${Math.max(13, S * 0.02)}px "Cormorant Garamond", Georgia, serif`;
+        // El nombre arriba del círculo: el jefe ocupa el centro.
+        const ty = y - rad + Math.max(20, S * 0.03);
+        ctx.fillText(r.name, x, ty);
+        ctx.font = `italic ${Math.max(11, S * 0.015)}px "Cormorant Garamond", Georgia, serif`;
+        ctx.fillStyle = open ? '#5a3a18' : '#9b3f2c';
+        ctx.fillText(open ? (visited.has(r.id) ? 'explorada' : 'abierta') : `🔒 ${r.requiresText}`, x, ty + Math.max(15, S * 0.022));
+      }
+      ctx.font = `italic ${Math.max(11, S * 0.016)}px "Cormorant Garamond", Georgia, serif`;
+      // Jefes de las regiones abiertas.
+      for (const b of bosses) {
+        if (!b.initialized) continue;
+        const region = regions.find((r) => r.radius > 0 && Math.hypot(r.center.x - b.arena.x, r.center.z - b.arena.z) < r.radius);
+        if (region && !isRegionOpen(region)) continue;
+        const [x, y] = toPx(b.arena.x, b.arena.z);
+        const beaten = b.state === 'defeated';
         ctx.fillStyle = beaten ? '#8c8272' : '#7a1f15';
         ctx.strokeStyle = INK;
         ctx.lineWidth = 2;
@@ -233,7 +266,8 @@ export function FullMap() {
         ctx.closePath();
         ctx.fill();
         ctx.fillStyle = '#7a1f15';
-        ctx.fillText(beaten ? 'La Matriarca (vencida)' : 'La Matriarca · desde los 2 años', x, y - 16);
+        const note = beaten ? ' (vencido)' : b.def.nightOnly ? ` · de noche, desde ${b.def.minAge} años` : ` · desde ${b.def.minAge} años`;
+        ctx.fillText(`${b.def.name}${note}`, x, y + 24);
       }
       // Esencia caída.
       if (progression.dropped) {

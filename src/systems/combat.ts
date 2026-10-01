@@ -551,6 +551,8 @@ export function updateCombat(world: WorldData, dt: number, rng: () => number): v
   if (!combat.active) return;
   combat.elapsed += dt;
   const m = me()!;
+  const regen = derivedStats().combatRegen;
+  if (regen > 0 && player.alive) player.needs.health = Math.min(1, player.needs.health + regen * dt);
 
   // Golpes programados del desgarro.
   for (let i = combat.pendingTears.length - 1; i >= 0; i--) {
