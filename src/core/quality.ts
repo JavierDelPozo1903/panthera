@@ -26,6 +26,10 @@ export interface QualityPreset {
   fogFar: number;
   postprocessing: boolean;
   bloom: boolean;
+  /** Oclusión ambiental en pantalla (N8AO): asienta animales, hierba y rocas en el suelo. */
+  ao: boolean;
+  /** Profundidad de campo de teleobjetivo (aspecto documental). */
+  dof: boolean;
   multisampling: number;
   dust: boolean;
   stars: number;
@@ -48,6 +52,8 @@ export const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
     fogFar: 1000,
     postprocessing: false,
     bloom: false,
+    ao: false,
+    dof: false,
     multisampling: 0,
     dust: false,
     stars: 900,
@@ -68,6 +74,8 @@ export const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
     fogFar: 1500,
     postprocessing: true,
     bloom: true,
+    ao: true,
+    dof: false,
     multisampling: 0,
     dust: true,
     stars: 1600,
@@ -88,6 +96,8 @@ export const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
     fogFar: 2100,
     postprocessing: true,
     bloom: true,
+    ao: true,
+    dof: true,
     multisampling: 4,
     dust: true,
     stars: 2400,
@@ -108,6 +118,8 @@ export const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
     fogFar: 2800,
     postprocessing: true,
     bloom: true,
+    ao: true,
+    dof: true,
     multisampling: 8,
     dust: true,
     stars: 3500,

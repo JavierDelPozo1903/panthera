@@ -23,13 +23,14 @@ interface LightKey {
 
 const KEYS: LightKey[] = [
   // Noche cerrada (luz ambiente alta: los leones ven muy bien de noche y el juego debe ser legible)
-  { e: -0.35, zenith: 0x040a1a, horizon: 0x16223c, glow: 0x121c30, sun: 0x000000, sunIntensity: 0, ambient: 0x7890d0, ground: 0x2a2a30, ambientIntensity: 2.6, fog: 0x18243e },
-  // Hora azul
-  { e: -0.12, zenith: 0x0b1733, horizon: 0x3b3456, glow: 0x9a4a46, sun: 0x000000, sunIntensity: 0, ambient: 0x8088c0, ground: 0x302a2c, ambientIntensity: 2.0, fog: 0x2e2c48 },
-  // Crepúsculo: el horizonte arde
-  { e: -0.03, zenith: 0x1d3160, horizon: 0xd96a4a, glow: 0xff5a28, sun: 0xff4a1a, sunIntensity: 0.0, ambient: 0x6c6c98, ground: 0x3a2c24, ambientIntensity: 1.4, fog: 0x6a4e5c },
+  { e: -0.35, zenith: 0x040a1a, horizon: 0x16223c, glow: 0x121c30, sun: 0x000000, sunIntensity: 0, ambient: 0x8a96b4, ground: 0x2c2c30, ambientIntensity: 2.4, fog: 0x1c2638 },
+  // Hora azul: el cielo aún ilumina el suelo (sin este relleno la sabana se queda en negro
+  // entre la puesta de sol y la noche cerrada).
+  { e: -0.12, zenith: 0x0b1733, horizon: 0x3b3456, glow: 0x9a4a46, sun: 0x000000, sunIntensity: 0, ambient: 0x8e94bc, ground: 0x3a3230, ambientIntensity: 2.6, fog: 0x3c3a56 },
+  // Crepúsculo: el horizonte arde y el cielo entero rellena las sombras
+  { e: -0.03, zenith: 0x1d3160, horizon: 0xd96a4a, glow: 0xff5a28, sun: 0xff4a1a, sunIntensity: 0.0, ambient: 0xa898b4, ground: 0x4a3a30, ambientIntensity: 2.6, fog: 0x8a6468 },
   // Orto / ocaso
-  { e: 0.02, zenith: 0x2f5189, horizon: 0xff9a5c, glow: 0xff7a30, sun: 0xff8a48, sunIntensity: 1.9, ambient: 0x8e90b4, ground: 0x5e4432, ambientIntensity: 1.1, fog: 0xc0907e },
+  { e: 0.02, zenith: 0x2f5189, horizon: 0xff9a5c, glow: 0xff7a30, sun: 0xff8a48, sunIntensity: 1.9, ambient: 0x9a96b4, ground: 0x5e4432, ambientIntensity: 1.7, fog: 0xc0907e },
   // Hora dorada
   { e: 0.14, zenith: 0x3d6db2, horizon: 0xffc88e, glow: 0xffb060, sun: 0xffb878, sunIntensity: 2.7, ambient: 0xb8bfcc, ground: 0x8e6c42, ambientIntensity: 1.05, fog: 0xd6b89a },
   // Media mañana
@@ -52,7 +53,8 @@ const LINEAR_KEYS = KEYS.map((k) => ({
   fog: toLinear(k.fog),
 }));
 
-const MOON_LIGHT = toLinear(0x8fa6e6);
+// Luz de luna poco saturada: de noche el ojo ve casi en gris (aspecto documental).
+const MOON_LIGHT = toLinear(0xb2bcd6);
 const MOON_SKY = toLinear(0x16284e);
 
 /** Compensación de exposición para el tone mapping AgX (más oscuro en medios tonos que ACES). */
