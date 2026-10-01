@@ -357,7 +357,7 @@ export function castAbility(id: AbilityId): boolean {
     for (const o of foesOf(m)) {
       if (distance(m, o) > 9) continue;
       o.action = null;
-      o.stagger = Math.max(o.stagger, (o.isBoss ? 0.6 : 1.1) * power);
+      o.stagger = Math.max(o.stagger, (o.isBoss ? 0.6 : 1.1) * power * derivedStats().roarStun);
       addPosture(o, 0.22 * power);
       o.morale -= 0.15;
     }
@@ -436,6 +436,7 @@ function resolvePlayer(m: Fighter, rng: () => number): void {
   const spec = C[move];
   const s = derivedStats();
   let amount = spec.damage * strengthRatio(m, target) * s.damageDealt * (0.85 + 0.3 * rng());
+  if (move === 'bite') amount *= s.biteBonus;
   let posture = (move === 'bite' ? 0.22 : 0.09) * s.postureDealt;
   let label = move === 'bite' ? 'Mordisco' : 'Zarpazo';
   if (move === 'swipe') {

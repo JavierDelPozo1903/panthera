@@ -62,6 +62,7 @@ export function GameLoop() {
     if (game.phase === 'playing') {
       if (input.consume('pause')) {
         if (game.denOpen) closeDenPanel();
+        else if (game.questsOpen) useGame.setState({ questsOpen: false });
         else if (game.mapOpen) useGame.setState({ mapOpen: false });
         else if (game.journalOpen) useGame.setState({ journalOpen: false });
         else pauseGame();
@@ -69,7 +70,8 @@ export function GameLoop() {
       if (input.consume('documentary')) game.toggleDocumentary();
       if (input.consume('hints')) game.updateSettings({ showHints: !game.settings.showHints });
       if (game.denOpen && input.consume('rest')) closeDenPanel();
-      if (input.consume('journal')) useGame.setState({ journalOpen: !game.journalOpen, mapOpen: false });
+      if (input.consume('journal')) useGame.setState({ journalOpen: !game.journalOpen, mapOpen: false, questsOpen: false });
+      if (input.consume('quests')) useGame.setState({ questsOpen: !game.questsOpen, mapOpen: false, journalOpen: false });
       if (input.consume('map')) useGame.setState({ mapOpen: !game.mapOpen, journalOpen: false });
       clock.dayLengthMinutes = game.settings.dayLengthMinutes;
       // El tiempo acelerado se corta si hay peligro.
@@ -89,7 +91,7 @@ export function GameLoop() {
       clock.timeScale = 1;
       clock.advance(dt);
       if (input.consume('pause') || input.consume('jump') || input.consume('interact')) finishIntro();
-    } else if (game.phase === 'menu') {
+    } else if (game.phase === 'menu' || game.phase === 'create') {
       // El amanecer del menú avanza muy despacio.
       clock.timeScale = 1;
       clock.advance(dt * 0.15);

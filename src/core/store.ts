@@ -3,7 +3,7 @@ import type { LifeStageId } from '../systems/lifeStage';
 import type { WorldData } from '../world/WorldData';
 import { QUALITY_PRESETS, type QualityLevel, type QualityPreset } from './quality';
 
-export type GamePhase = 'loading' | 'menu' | 'intro' | 'playing' | 'paused' | 'dead';
+export type GamePhase = 'loading' | 'menu' | 'create' | 'intro' | 'playing' | 'paused' | 'dead';
 
 /**
  * Papel del jugador en la sociedad de los leones:
@@ -68,6 +68,8 @@ interface GameState {
   lifeRole: LifeRole;
   /** Panel de la guarida (subir de nivel y habilidades) abierto. */
   denOpen: boolean;
+  /** Cuaderno de misiones abierto. */
+  questsOpen: boolean;
 
   setPhase: (phase: GamePhase) => void;
   setLoadingProgress: (p: number) => void;
@@ -98,6 +100,7 @@ export const useGame = create<GameState>((set) => ({
   mapOpen: false,
   lifeRole: 'pride',
   denOpen: false,
+  questsOpen: false,
 
   setPhase: (phase) => set({ phase }),
   setLoadingProgress: (loadingProgress) => set({ loadingProgress }),

@@ -21,7 +21,7 @@ export function AudioDriver() {
         golden: atmosphere.golden,
         danger: phase === 'playing' ? director.danger : 0,
         paused: phase === 'paused',
-        inMenu: phase === 'menu' || phase === 'intro' || phase === 'dead',
+        inMenu: phase === 'menu' || phase === 'create' || phase === 'intro' || phase === 'dead',
         masterVolume: settings.masterVolume,
         musicVolume: settings.musicVolume,
         sfxVolume: settings.sfxVolume,

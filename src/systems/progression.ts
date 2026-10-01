@@ -1,5 +1,7 @@
 import { events } from '../core/events';
 import { clamp } from '../core/math';
+import { relicIdFromName, type RelicId } from './relics';
+import { hasSpecies } from './species';
 
 /**
  * Progresión estilo souls: la «esencia del linaje» se gana cazando, peleando, explorando y
@@ -107,8 +109,9 @@ export const progression = {
   healingCharges: 3,
   maxHealingCharges: 3,
   dropped: null as DroppedEssence | null,
-  /** Reliquias obtenidas. */
+  /** Reliquias obtenidas (ids) y equipadas. */
   relics: [] as string[],
+  equipped: [] as string[],
   /** Jefes vencidos. */
   bossesDefeated: [] as string[],
 };
@@ -127,13 +130,15 @@ export function resetProgression(data?: Partial<ProgressionSave>): void {
   progression.maxHealingCharges = 3;
   progression.dropped = null;
   progression.relics = [];
+  progression.equipped = [];
   progression.bossesDefeated = [];
   if (data) {
     Object.assign(progression, {
       ...data,
       attributes: { ...progression.attributes, ...data.attributes },
       ranks: { ...progression.ranks, ...data.ranks },
-      relics: [...(data.relics ?? [])],
+      relics: (data.relics ?? []).map((r) => relicIdFromName(r) ?? r),
+      equipped: (data.equipped ?? []).map((r) => relicIdFromName(r) ?? r),
       bossesDefeated: [...(data.bossesDefeated ?? [])],
       dropped: data.dropped ? { ...data.dropped } : null,
     });
@@ -146,6 +151,7 @@ export function snapshotProgression(): ProgressionSave {
     attributes: { ...progression.attributes },
     ranks: { ...progression.ranks },
     relics: [...progression.relics],
+    equipped: [...progression.equipped],
     bossesDefeated: [...progression.bossesDefeated],
     dropped: progression.dropped ? { ...progression.dropped } : null,
   };
@@ -219,22 +225,59 @@ export function tryRecoverEssence(x: number, z: number): number {
 
 const attr = (a: Attribute) => progression.attributes[a] - 10;
 
-/** Estadísticas derivadas de los atributos (1 = valor base). */
+// ---- Reliquias ----
+
+/** Huecos de reliquia: 2, y 3 a partir del nivel 20. */
+export const relicSlots = (): number => (progression.level >= 20 ? 3 : 2);
+export const isEquipped = (id: RelicId): boolean => progression.equipped.includes(id);
+
+/** Equipa o quita una reliquia. Devuelve false si no hay hueco libre. */
+export function toggleRelic(id: RelicId): boolean {
+  if (!progression.relics.includes(id)) return false;
+  const i = progression.equipped.indexOf(id);
+  if (i >= 0) {
+    progression.equipped.splice(i, 1);
+    return true;
+  }
+  if (progression.equipped.length >= relicSlots()) return false;
+  progression.equipped.push(id);
+  return true;
+}
+
+/** Concede una reliquia (y la equipa si queda hueco). */
+export function grantRelic(id: RelicId): boolean {
+  if (progression.relics.includes(id)) return false;
+  progression.relics.push(id);
+  if (progression.equipped.length < relicSlots()) progression.equipped.push(id);
+  return true;
+}
+
+/** Cargas máximas de hojas medicinales (la piedra de la lluvia añade una). */
+export const maxHealingCharges = (): number => progression.maxHealingCharges + (isEquipped('rainStone') ? 1 : 0);
+
+/** Estadísticas derivadas de atributos, especie y reliquias (1 = valor base). */
 export function derivedStats() {
+  const maxHealthPoints = Math.round(
+    (1000 + 30 * attr('resistencia')) * (hasSpecies('barbary') ? 1.15 : 1) * (isEquipped('rainStone') ? 0.92 : 1),
+  );
   return {
     /** Vida máxima en puntos (la salud del juego es una fracción de esta). */
-    maxHealthPoints: 1000 + 30 * attr('resistencia'),
-    /** Multiplicador del daño recibido. */
-    damageTaken: 1 / (1 + 0.025 * attr('resistencia')),
+    maxHealthPoints,
+    /** Multiplicador del daño recibido: más vida y más resistencia reducen la fracción perdida. */
+    damageTaken: ((1000 / maxHealthPoints) * (isEquipped('duelScar') ? 1.08 : 1)) / (1 + 0.012 * attr('resistencia')),
     /** Multiplicador del daño causado. */
-    damageDealt: 1 + 0.035 * attr('fuerza'),
+    damageDealt: (1 + 0.035 * attr('fuerza')) * (isEquipped('secretaryFeather') ? 0.95 : 1),
+    /** Daño extra del mordisco. */
+    biteBonus: isEquipped('duelScar') ? 1.15 : 1,
     /** Daño a la postura del rival. */
     postureDealt: 1 + 0.04 * attr('ferocidad'),
     /** Aguante máximo de combate. */
-    maxStamina: 1 + 0.02 * attr('resistencia'),
+    maxStamina: (1 + 0.02 * attr('resistencia')) * (isEquipped('matriarchTooth') ? 0.9 : 1),
     staminaRegen: 1 + 0.025 * attr('agilidad'),
     /** Segundos de invulnerabilidad de la esquiva. */
-    dodgeIFrames: clamp(0.26 + 0.004 * attr('agilidad'), 0.2, 0.5),
+    dodgeIFrames: clamp(0.26 + 0.004 * attr('agilidad') + (isEquipped('secretaryFeather') ? 0.06 : 0), 0.2, 0.56),
+    /** Multiplicador del aturdimiento del rugido. */
+    roarStun: (isEquipped('matriarchTooth') ? 1.4 : 1) * (hasSpecies('white') ? 1.3 : 1),
     /** Ventana (s) para un bloqueo perfecto. */
     parryWindow: clamp(0.16 + 0.004 * attr('instinto'), 0.1, 0.32),
     furyGain: 1 + 0.03 * attr('ferocidad'),

@@ -1,7 +1,7 @@
 import { events } from '../core/events';
 import { useGame } from '../core/store';
 import { player } from '../entities/player/playerState';
-import { progression } from './progression';
+import { maxHealingCharges, progression } from './progression';
 import { playerBody } from './wounds';
 
 /**
@@ -69,7 +69,7 @@ export const lastDen = (): Den | null => dens.find((d) => d.id === denState.last
 /** Descansa en una guarida: cura, rellena consumibles y abre el panel de nivel. */
 export function restAtDen(den: Den): void {
   denState.lastDenId = den.id;
-  progression.healingCharges = progression.maxHealingCharges;
+  progression.healingCharges = maxHealingCharges();
   player.needs.health = 1;
   player.needs.energy = Math.max(player.needs.energy, 0.8);
   for (const w of playerBody.wounds) {

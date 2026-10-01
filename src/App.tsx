@@ -9,7 +9,9 @@ import { FullMap } from './ui/FullMap';
 import { HUD } from './ui/HUD';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { JournalPanel } from './ui/JournalPanel';
+import { CreationScreen } from './ui/CreationScreen';
 import { DenPanel } from './ui/DenPanel';
+import { QuestPanel } from './ui/QuestPanel';
 import { LoadingScreen } from './ui/LoadingScreen';
 import { MainMenu } from './ui/MainMenu';
 import { PauseMenu } from './ui/PauseMenu';
@@ -60,11 +62,13 @@ export default function App() {
       {world && <GameCanvas />}
       {phase === 'loading' && <LoadingScreen error={error} />}
       {phase === 'menu' && <MainMenu />}
+      {phase === 'create' && <CreationScreen />}
       {phase === 'intro' && <IntroOverlay />}
       {(phase === 'playing' || phase === 'paused') && <HUD />}
       {phase === 'playing' && <JournalPanel />}
       {phase === 'playing' && <FullMap />}
       {phase === 'playing' && <DenPanel />}
+      {phase === 'playing' && <QuestPanel />}
       {phase === 'paused' && <PauseMenu />}
       {phase === 'dead' && <DeathScreen />}
     </div>

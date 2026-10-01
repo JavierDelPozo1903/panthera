@@ -21,11 +21,13 @@ import { updateObjectiveTriggers } from '../systems/objectives';
 import { abortCombat, furyActive, tickAbilities, updateCombat } from '../systems/combat';
 import { denState, lastDen } from '../systems/dens';
 import { resetDefense, updateDefense } from '../systems/playerDefense';
-import { dropEssence, gainEssence, tryRecoverEssence } from '../systems/progression';
+import { dropEssence, gainEssence, progression, tryRecoverEssence } from '../systems/progression';
+import { hasSpecies, hasTemperament, unlockSpecies } from '../systems/species';
 import { updateLifeRole } from '../systems/lifeRole';
 import { updateReproduction } from '../systems/reproduction';
 import { BODY_PART_LABEL, partWithArticle, playerBody, updateWounds } from '../systems/wounds';
 import { pruneMarks } from '../world/territories';
+import { updateQuests } from '../systems/quests';
 import { clock } from './clock';
 import { events } from './events';
 import { mulberry32 } from './math';
@@ -59,7 +61,7 @@ export function Simulation() {
   );
 
   // Cada hito del diario también da un poco de esencia.
-  useEffect(() => events.on('milestone', () => void gainEssence(40, 'Hito')), []);
+  useEffect(() => events.on('milestone', () => void gainEssence(hasTemperament('curious') ? 46 : 40, 'Hito')), []);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
@@ -89,6 +91,9 @@ export function Simulation() {
       }
       if (player.needs.health <= 0.001) die();
       tryRecoverEssence(player.position.x, player.position.z);
+      if (progression.level >= 10 && unlockSpecies('white')) {
+        events.emit('subtitle', { text: 'Has desbloqueado una especie nueva para tus próximas vidas: el león blanco', seconds: 5 });
+      }
     } else if (st.respawn >= 0) {
       st.respawn -= dt;
       if (st.respawn < 0) respawn();
@@ -136,11 +141,12 @@ export function Simulation() {
       st.exploreTimer = 0.5;
       updateExploration(world.size, clock.totalDays);
       pruneMarks();
+      updateQuests();
     }
   }, -38);
 
   function updatePlayerWounds(gameHours: number) {
-    const tick = updateWounds(playerBody, gameHours, player.resting, rng);
+    const tick = updateWounds(playerBody, gameHours, player.resting, rng, hasSpecies('congo') ? 0.4 : 1);
     if (tick.healthDelta < 0) {
       player.needs.health = Math.max(0, player.needs.health + tick.healthDelta);
       if (playerBody.wounds.some((w) => w.infected)) player.lastDamage = 'wounds';

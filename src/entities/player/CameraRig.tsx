@@ -61,7 +61,18 @@ export function CameraRig() {
     let fov: number;
     let follow = 12;
 
-    if (phase === 'menu' || phase === 'loading') {
+    if (phase === 'create') {
+      // Creación del cachorro: plano cercano y lento alrededor del pequeño.
+      st.menuTime += dt;
+      yaw = player.heading + 0.9 + Math.sin(st.menuTime * 0.12) * 0.5;
+      pitch = 0.18;
+      dist = 3.4;
+      fov = 34;
+      follow = 6;
+      st.focus.y -= 0.45 * s;
+      st.yaw = player.heading;
+      st.introTime = 0;
+    } else if (phase === 'menu' || phase === 'loading') {
       // Órbita lenta alrededor del cachorro y su madre al amanecer.
       st.menuTime += dt;
       if (mother.active) {

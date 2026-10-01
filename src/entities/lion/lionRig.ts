@@ -27,6 +27,8 @@ export interface LionAppearance {
   maneDarkness: number;
   /** Tono base del pelaje (herencia genética en la Fase 4). */
   furTint?: number;
+  /** Variante de pelaje: el león blanco de Timbavati. */
+  coat?: 'normal' | 'white';
 }
 
 /** Escala global del modelo según sexo y edad. */
@@ -69,12 +71,13 @@ export function createLionMesh(app: LionAppearance, material: THREE.Material) {
 
   // Paleta
   const tint = app.furTint ?? 0;
-  const fur = srgb(app.sex === 'male' ? 0xcfa56b : 0xd8b47e).offsetHSL(tint * 0.02, 0, tint * 0.04);
+  const white = app.coat === 'white';
+  const fur = srgb(white ? 0xeee4cf : app.sex === 'male' ? 0xcfa56b : 0xd8b47e).offsetHSL(tint * 0.02, 0, tint * 0.04);
   const belly = srgb(0xf1e4c4);
   const dark = srgb(0x2b1d15);
   const nose = srgb(0x4a2c26);
   const eye = srgb(0xc8902c);
-  const maneColor = srgb(0xb4803f).lerp(srgb(0x24170f), clamp(app.maneDarkness, 0, 1));
+  const maneColor = white ? srgb(0xe8d9bb).lerp(srgb(0xb59a6e), clamp(app.maneDarkness, 0, 1)) : srgb(0xb4803f).lerp(srgb(0x24170f), clamp(app.maneDarkness, 0, 1));
   const spot = srgb(0x8f6c44);
 
   const tmpC = new THREE.Color();

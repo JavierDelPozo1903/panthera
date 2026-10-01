@@ -1,6 +1,7 @@
 import { useGame } from '../core/store';
 import { mother, siblings } from '../entities/npc/npcState';
 import { journal } from '../systems/journal';
+import { playerProfile } from '../systems/species';
 import { useTicker } from './useTicker';
 
 /** Diario de campo: el cuaderno del investigador que sigue tu vida. */
@@ -27,7 +28,7 @@ export function JournalPanel() {
         }}
       >
         <p className="text-[10px] uppercase tracking-[0.35em] text-clay">Diario de campo</p>
-        <h3 className="mt-1 font-serif text-3xl">Notas sobre un cachorro</h3>
+        <h3 className="mt-1 font-serif text-3xl">Notas sobre {playerProfile.name}</h3>
         <p className="mt-2 font-serif text-base italic text-earth/80">
           Madre: {data.motherName}. Hermanos:{' '}
           {data.family.map((f, i) => (

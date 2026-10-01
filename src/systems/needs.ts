@@ -2,6 +2,7 @@ import lionData from '../data/lion.json';
 import { events } from '../core/events';
 import { clamp } from '../core/math';
 import { player } from '../entities/player/playerState';
+import { hasSpecies } from './species';
 
 const N = lionData.needs;
 
@@ -30,7 +31,7 @@ export function updateNeeds(ctx: NeedsContext): void {
   const age = ctx.isCub ? 'cub' : 'adult';
 
   n.satiety -= N.satietyLossPerHour[age] * h;
-  n.hydration -= N.hydrationLossPerHour[age] * h;
+  n.hydration -= N.hydrationLossPerHour[age] * h * (hasSpecies('kalahari') ? 0.65 : 1);
   n.energy += N.energyPerHour[ctx.activity] * h * (ctx.activity === 'rest' && n.bond < 0.2 ? 0.5 : 1);
 
   // Acciones sostenidas (por segundo real).

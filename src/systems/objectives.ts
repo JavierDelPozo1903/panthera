@@ -7,6 +7,7 @@ import { mother } from '../entities/npc/npcState';
 import { player } from '../entities/player/playerState';
 import { hasMilestone, recordMilestone } from './journal';
 import { stageObjective } from './lifeStage';
+import { trackedObjective } from './quests';
 
 interface Objective {
   milestone: string;
@@ -58,6 +59,8 @@ export function currentObjective(override: string | null): string {
   const chain = activeChain();
   const next = chain?.find((o) => !hasMilestone(o.milestone));
   if (next) return next.text;
+  const q = trackedObjective();
+  if (q) return `${q.title} (${q.index + 1}/${q.total}): ${q.step}`;
   const { lifeStage, sex, lifeRole } = useGame.getState();
   // El papel social manda sobre la edad una vez fuera de la manada natal.
   if (lifeRole === 'king') return 'Defiende tu reino de los nómadas, marca el territorio (Y) y engendra cachorros con tus leonas.';

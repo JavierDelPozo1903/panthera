@@ -9,7 +9,9 @@ import { resetDens } from '../systems/dens';
 import { resetDefense } from '../systems/playerDefense';
 import { progression, resetProgression, ATTRIBUTES } from '../systems/progression';
 import { resetCombat } from '../systems/combat';
-import { randomTraits, setPlayerTraits } from '../systems/genetics';
+import { randomTraits, setPlayerTraits, type Traits } from '../systems/genetics';
+import { playerProfile, resetProfile, SPECIES, type Coat } from '../systems/species';
+import { resetQuests } from '../systems/quests';
 import { lifeRoleState, resetLifeRole } from '../systems/lifeRole';
 import { resetReproduction } from '../systems/reproduction';
 import { playerBody, resetBody } from '../systems/wounds';
@@ -79,6 +81,8 @@ function setupNewLitter(seed: number): void {
   resetReproduction();
   resetBody(playerBody);
   setPlayerTraits(randomTraits(rng));
+  resetProfile();
+  resetQuests();
   resetProgression();
   resetDens([{ id: 'natal', name: 'Guarida de la Acacia', x: den.motherX, z: den.motherZ, claimed: true }], 'natal');
   initMatriarch(world, den.motherX, den.motherZ);
@@ -95,10 +99,30 @@ export function prepareMenu(): void {
   useGame.setState({ phase: 'menu', documentary: false, deathInfo: null, journalOpen: false });
 }
 
+/** Abre la pantalla de creación del cachorro. */
+export function openCreation(): void {
+  input.flush();
+  useGame.setState({ phase: 'create' });
+}
+
+/** Vuelve a dibujar el cachorro con el aspecto elegido en la creación. */
+export function previewCub(sex: Sex, traits: Traits, coat: Coat): void {
+  setPlayerTraits(traits);
+  playerProfile.coat = coat;
+  useGame.setState((s) => ({ sex, familyVersion: s.familyVersion + 1 }));
+}
+
 /** Empieza una vida nueva con la cinemática de introducción. */
-export function startNewLife(sex: Sex): void {
+export function startNewLife(sex: Sex, profile?: Partial<typeof playerProfile>, traits?: Traits): void {
   useGame.setState({ sex });
   setupNewLitter(Date.now() & 0xffffff);
+  resetProfile(profile);
+  if (traits) setPlayerTraits(traits);
+  // La especie fija los atributos de partida.
+  const deltas = SPECIES[playerProfile.species].attributes;
+  for (const a of ATTRIBUTES) progression.attributes[a] = 10 + (deltas[a] ?? 0);
+  resetDefense();
+  bumpFamily();
   clock.reset();
   clock.timeOfDay = 6.45;
   input.flush();
@@ -112,7 +136,7 @@ export function finishIntro(): void {
   if (useGame.getState().phase !== 'intro') return;
   input.flush();
   useGame.setState({ phase: 'playing' });
-  recordMilestone('birth', `Naciste en un kopje del Serengeti. Tu madre se llama ${mother.name}`, true);
+  recordMilestone('birth', `${playerProfile.name}, ${SPECIES[playerProfile.species].name.toLowerCase()}: naciste en un kopje del Serengeti. Tu madre se llama ${mother.name}`, true);
   requestPointerLock();
 }
 
@@ -160,6 +184,8 @@ export async function continueLife(): Promise<void> {
   }
   if (save.souls) {
     resetProgression(save.souls.progression);
+    resetProfile(save.souls.profile);
+    if (save.souls.quests) resetQuests(save.souls.quests);
     resetDens(save.souls.dens, save.souls.lastDenId);
     initMatriarch(world, save.family.home[0], save.family.home[1]);
     resetDefense();

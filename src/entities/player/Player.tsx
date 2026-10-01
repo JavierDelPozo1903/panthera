@@ -14,6 +14,7 @@ import { combat, lockedPosition, playerActionId, playerCombatAction, playerComba
 import { denNear, restAtDen } from '../../systems/dens';
 import { defense, setGuard, startDodge } from '../../systems/playerDefense';
 import { progression } from '../../systems/progression';
+import { hasSpecies, hasTemperament, playerProfile } from '../../systems/species';
 import { playerTraits } from '../../systems/genetics';
 import { availableSocial } from '../../systems/social';
 import { playerBody, woundSpeedFactor } from '../../systems/wounds';
@@ -81,6 +82,7 @@ export function Player() {
         ageYears: Math.max(player.ageYears, growthStep * GROWTH_STEP_YEARS),
         maneDarkness: playerTraits.maneDarkness,
         furTint: playerTraits.furTint,
+        coat: playerProfile.coat,
       }),
     // `family` cambia en el modo legado: nuevo protagonista, nuevos rasgos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,7 +129,7 @@ export function Player() {
     const phase = useGame.getState().phase;
 
     if (phase !== 'playing' || !p.alive) {
-      if (phase === 'menu' || phase === 'intro') {
+      if (phase === 'menu' || phase === 'create' || phase === 'intro') {
         actor.play('rest', 0.6);
         actor.update(dt);
       } else if (!p.alive && phase !== 'paused') {
@@ -296,7 +298,7 @@ export function Player() {
     // Capacidades según la edad: un cachorro corre a menos de la mitad y se agota antes.
     const maturity = physicalMaturity(p.ageYears);
     const ability = (0.42 + 0.58 * maturity) * needsSpeedFactor() * woundSpeedFactor(playerBody);
-    const top = topSpeedMs(sex) * ability;
+    const top = topSpeedMs(sex) * ability * (hasSpecies('masai') ? 1.08 : 1);
     let turnPenalty = 1;
     // Dirección del desplazamiento (con objetivo fijado, el león encara al rival y se mueve de lado).
     let mdx = Math.sin(p.heading);
@@ -444,6 +446,10 @@ export function Player() {
       speed: p.speed,
       small: p.ageYears < 1,
     });
+    // Especie y carácter: el asiático acecha mejor, el blanco se ve de lejos.
+    p.visibility *= hasSpecies('asiatic') ? 0.8 : hasSpecies('white') ? 1.15 : 1;
+    if (p.crouching && hasTemperament('patient')) p.visibility *= 0.9;
+    p.visibility = Math.min(1, p.visibility);
     // Refugio de la madriguera: entre rocas y matorral un cachorro quieto es casi invisible.
     if (mother.active && distXZ(p.position, mother.home) < 6) {
       p.visibility *= p.crouching || p.resting ? 0.3 : 0.7;

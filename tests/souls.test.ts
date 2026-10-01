@@ -205,7 +205,7 @@ describe('jefe: La Matriarca', () => {
     for (const f of combat.fighters) if (f.side === 'enemy' && f.agent) f.agent.health = 0;
     updateCombat(world, DT, rng);
     expect(matriarch.state).toBe('defeated');
-    expect(progression.relics).toContain('Diente de la Matriarca');
+    expect(progression.relics).toContain('matriarchTooth');
     expect(progression.essence).toBeGreaterThanOrEqual(2500);
   });
 

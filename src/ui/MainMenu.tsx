@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import lionData from '../data/lion.json';
-import { continueLife, startNewLife } from '../core/gameFlow';
+import { continueLife, openCreation } from '../core/gameFlow';
 import { useGame, type Sex } from '../core/store';
 import { SettingsPanel } from './SettingsPanel';
 
@@ -57,7 +57,10 @@ export function MainMenu() {
         <div className="mt-6 flex animate-riseIn flex-wrap gap-3" style={{ animationDelay: '0.3s' }}>
           <button
             type="button"
-            onClick={() => startNewLife(sex)}
+            onClick={() => {
+              useGame.setState({ sex });
+              openCreation();
+            }}
             className="rounded-md bg-ochre px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-umber shadow-lg transition hover:bg-sand"
           >
             Comenzar una vida
@@ -81,7 +84,7 @@ export function MainMenu() {
           {fact}
         </p>
       </div>
-      <p className="absolute bottom-4 right-6 text-[10px] uppercase tracking-[0.25em] text-bone/40">Fase 2 · la primera hora</p>
+      <p className="absolute bottom-4 right-6 text-[10px] uppercase tracking-[0.25em] text-bone/40">Versión souls · La Matriarca</p>
     </div>
   );
 }

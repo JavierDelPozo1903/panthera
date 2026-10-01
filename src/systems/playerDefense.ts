@@ -2,6 +2,7 @@ import { events } from '../core/events';
 import { addWound, playerBody, randomPart } from './wounds';
 import { damagePlayer, player, type DeathCause } from '../entities/player/playerState';
 import { derivedStats } from './progression';
+import { hasTemperament } from './species';
 
 /**
  * Defensa del jugador en combate: esquiva con invulnerabilidad, bloqueo (con contragolpe
@@ -104,7 +105,7 @@ export function hitPlayer(amount: number, cause: DeathCause, opts: HitOptions = 
       events.emit('sfx', { sound: 'growl', x: player.position.x, y: player.position.y + 0.8, z: player.position.z, volume: 0.9 });
       return 'parried';
     }
-    const cost = opts.guardCost ?? 0.18 + amount * 2;
+    const cost = (opts.guardCost ?? 0.18 + amount * 2) * (hasTemperament('brave') ? 0.85 : 1);
     defense.stamina -= cost;
     defense.staminaDelay = 0.8;
     if (defense.stamina > 0) {

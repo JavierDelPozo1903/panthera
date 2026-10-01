@@ -320,6 +320,7 @@ const HINTS: [string, string][] = [
   ['Z', 'Descansar · en la guarida: subir de nivel'],
   ['J', 'Diario de campo'],
   ['M', 'Mapa del territorio'],
+  ['K', 'Misiones'],
   ['V', 'Cámara documental'],
   ['T', 'Acelerar tiempo'],
   ['Esc', 'Pausa'],

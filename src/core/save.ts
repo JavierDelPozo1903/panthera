@@ -10,6 +10,8 @@ import { playerBody, type Body } from '../systems/wounds';
 import { territories, type TerritoryOwner } from '../world/territories';
 import { denState, dens, type Den } from '../systems/dens';
 import { snapshotProgression, type ProgressionSave } from '../systems/progression';
+import { playerProfile } from '../systems/species';
+import { snapshotQuests } from '../systems/quests';
 import { journal, type JournalEntry, type LifeStats } from '../systems/journal';
 import { clock, type ClockSnapshot } from './clock';
 import { useGame, type LifeRole, type Settings, type Sex } from './store';
@@ -43,7 +45,7 @@ export interface SaveGame {
     wild: WildLionSave[];
   };
   /** Progresión souls: nivel, habilidades, reliquias, jefes y guaridas. */
-  souls?: { progression: ProgressionSave; dens: Den[]; lastDenId: string };
+  souls?: { progression: ProgressionSave; dens: Den[]; lastDenId: string; profile?: typeof playerProfile; quests?: ReturnType<typeof snapshotQuests> };
 }
 
 // IndexedDB puede no estar disponible (modo privado, políticas del navegador):
@@ -107,7 +109,7 @@ export function captureSave(sex: Sex, seed: number): SaveGame {
       territoryOwners: Object.fromEntries(territories.map((t) => [t.id, t.owner])),
       wild: serializeWildLions(),
     },
-    souls: { progression: snapshotProgression(), dens: dens.map((d) => ({ ...d })), lastDenId: denState.lastDenId },
+    souls: { progression: snapshotProgression(), dens: dens.map((d) => ({ ...d })), lastDenId: denState.lastDenId, profile: { ...playerProfile }, quests: snapshotQuests() },
   };
 }
 

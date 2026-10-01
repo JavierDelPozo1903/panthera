@@ -240,6 +240,7 @@ export function updateReproduction(world: WorldData, gameDays: number, dt: numbe
     for (const l of wildLions) {
       if (!l.alive) continue;
       l.ageYears += years;
+      if (l.playerChild && l.role === 'cub' && l.ageYears >= 0.5) recordMilestone('cubs:half-year', `${l.name}, tu cachorro, cumple medio año`);
       if (l.role === 'cub' && l.ageYears >= CUB_UNTIL_YEARS) {
         if (l.sex === 'female') {
           l.role = 'female';

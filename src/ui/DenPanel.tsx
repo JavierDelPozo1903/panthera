@@ -13,13 +13,17 @@ import {
   derivedStats,
   levelCost,
   levelUp,
+  maxHealingCharges,
   MAX_RANK,
   nextRankLevel,
   progression,
   rankUp,
+  relicSlots,
   spendAttribute,
+  toggleRelic,
   type Attribute,
 } from '../systems/progression';
+import { RELICS, type RelicId } from '../systems/relics';
 
 /**
  * Panel de la guarida (al descansar con Z): gastar esencia para subir de nivel, repartir
@@ -111,7 +115,7 @@ export function DenPanel() {
             <dt>Ventana de contragolpe</dt>
             <dd className="text-right font-mono">{s.parryWindow.toFixed(2)} s</dd>
             <dt>Hojas medicinales</dt>
-            <dd className="text-right font-mono">{p.maxHealingCharges}</dd>
+            <dd className="text-right font-mono">{maxHealingCharges()}</dd>
           </dl>
         </section>
 
@@ -157,12 +161,41 @@ export function DenPanel() {
               );
             })}
           </ul>
-          {p.relics.length > 0 && (
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.3em] text-[#9b3f2c]">Reliquias</p>
-              <p className="font-serif text-lg italic">{p.relics.join(' · ')}</p>
-            </div>
-          )}
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-[#9b3f2c]">
+              Reliquias · {p.equipped.length} de {relicSlots()} huecos
+            </p>
+            {p.relics.length === 0 && <p className="font-serif text-lg italic text-[#5a3a18]">Vence jefes y supera pruebas para conseguirlas.</p>}
+            <ul className="mt-1 space-y-1.5">
+              {p.relics.map((rid) => {
+                const r = RELICS[rid as RelicId];
+                if (!r) return null;
+                const on = p.equipped.includes(rid);
+                return (
+                  <li key={rid} className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleRelic(r.id);
+                        bump();
+                      }}
+                      className={`w-24 shrink-0 rounded-sm border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+                        on ? 'border-[#d9b26a] bg-umber text-[#d9b26a]' : 'border-umber/50'
+                      }`}
+                    >
+                      {on ? 'Equipada' : 'Equipar'}
+                    </button>
+                    <span className="min-w-0">
+                      <span className="font-serif text-lg italic">{r.name}</span>
+                      <span className="block text-xs text-[#5a3a18]">
+                        {r.effect} <span className="text-[#9b3f2c]">{r.cost}</span>
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
           <div className="flex items-center justify-between pt-2">
             <p className="text-xs text-[#5a3a18]">Las peleas, las cacerías, los hitos y los jefes dan esencia. Si caes, la dejas en tu rastro.</p>
             <button

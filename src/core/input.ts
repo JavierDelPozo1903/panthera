@@ -33,7 +33,8 @@ export type Action =
   | 'lockOn'
   | 'dodge'
   | 'guard'
-  | 'heal';
+  | 'heal'
+  | 'quests';
 
 export const KEY_BINDINGS: Record<Action, string[]> = {
   forward: ['KeyW', 'ArrowUp'],
@@ -68,6 +69,7 @@ export const KEY_BINDINGS: Record<Action, string[]> = {
   dodge: ['Space'],
   guard: ['ShiftLeft', 'ShiftRight'],
   heal: ['Digit1'],
+  quests: ['KeyK'],
 };
 
 /** Botones del mapeo estándar de la Gamepad API. */

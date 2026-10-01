@@ -79,7 +79,7 @@ export interface WoundTick {
  * en reposo) y pueden infectarse si son profundas y el león no descansa. Las graves
  * dejan cicatriz permanente.
  */
-export function updateWounds(body: Body, gameHours: number, resting: boolean, rng: () => number): WoundTick {
+export function updateWounds(body: Body, gameHours: number, resting: boolean, rng: () => number, infectionMult = 1): WoundTick {
   const tick: WoundTick = { healthDelta: 0, newlyInfected: [], newScars: [] };
   if (gameHours <= 0 || body.wounds.length === 0) return tick;
   for (let i = body.wounds.length - 1; i >= 0; i--) {
@@ -93,7 +93,7 @@ export function updateWounds(body: Body, gameHours: number, resting: boolean, rn
     } else {
       const heal = W.healPerHour * (resting ? 2 : 1) * gameHours;
       w.severity -= heal;
-      if (w.severity > 0.3 && !resting && rng() < W.infectionChancePerHour * gameHours) {
+      if (w.severity > 0.3 && !resting && rng() < W.infectionChancePerHour * gameHours * infectionMult) {
         w.infected = true;
         tick.newlyInfected.push(w);
       }

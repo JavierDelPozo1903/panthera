@@ -7,7 +7,8 @@ import { abortCombat, addEnemies, combat, onCombatEnd, setCombatProfile, startCo
 import { addDen, claimDen } from '../systems/dens';
 import { recordMilestone } from '../systems/journal';
 import { hitPlayer } from '../systems/playerDefense';
-import { gainEssence, progression } from '../systems/progression';
+import { gainEssence, grantRelic, progression } from '../systems/progression';
+import { unlockSpecies } from '../systems/species';
 import type { WorldData } from '../world/WorldData';
 import { distXZ } from './steering';
 
@@ -294,6 +295,7 @@ export function updateMatriarch(world: WorldData, dt: number): void {
   if (matriarch.state === 'dormant') {
     a.clip = d < 45 ? 'snarl' : 'rest';
     if (d < 45) a.heading = moveTowardsAngle(a.heading, Math.atan2(player.position.x - a.position.x, player.position.z - a.position.z), 2 * dt);
+    if (d < 70) recordMilestone('found:matriarch', 'Encuentras el Cementerio de Huesos: un claro sembrado de huesos de león');
     if (!player.alive || d > TRIGGER_RADIUS || combat.active) return;
     if (player.ageYears < MIN_AGE) {
       if (!matriarch.warnedYoung) {
@@ -381,7 +383,8 @@ onCombatEnd((result, reason) => {
   matriarch.agent.clip = 'die';
   for (const m of matriarch.minions) m.alive = false;
   if (!progression.bossesDefeated.includes(BOSS_ID)) progression.bossesDefeated.push(BOSS_ID);
-  if (!progression.relics.includes('Diente de la Matriarca')) progression.relics.push('Diente de la Matriarca');
+  grantRelic('matriarchTooth');
+  if (unlockSpecies('barbary')) events.emit('subtitle', { text: 'Desbloqueado para tus próximas vidas: el león del Atlas', seconds: 5 });
   events.emit('banner', { text: 'Leyenda abatida', tone: 'victory', seconds: 5 });
   gainEssence(2500, 'La Matriarca');
   claimDen('cemetery');
