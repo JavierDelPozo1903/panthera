@@ -6,13 +6,20 @@ import { updateMother } from '../ai/motherBrain';
 import { updatePrey } from '../ai/preyBrain';
 import { updatePride } from '../ai/prideBrain';
 import { updateSiblings } from '../ai/siblingBrain';
+import { updateWildLions } from '../ai/wildLionBrain';
 import { updateCarcasses } from '../entities/carcass/carcassState';
 import { mother, siblings } from '../entities/npc/npcState';
+import { wildLions } from '../entities/npc/wildLions';
 import { player } from '../entities/player/playerState';
 import { updateExploration } from '../systems/exploration';
-import { journal } from '../systems/journal';
+import { journal, recordMilestone } from '../systems/journal';
 import { updateNeeds, type Activity } from '../systems/needs';
 import { updateObjectiveTriggers } from '../systems/objectives';
+import { updateCombat } from '../systems/combat';
+import { updateLifeRole } from '../systems/lifeRole';
+import { updateReproduction } from '../systems/reproduction';
+import { BODY_PART_LABEL, partWithArticle, playerBody, updateWounds } from '../systems/wounds';
+import { pruneMarks } from '../world/territories';
 import { clock } from './clock';
 import { events } from './events';
 import { mulberry32 } from './math';
@@ -57,6 +64,7 @@ export function Simulation() {
         isCub: player.ageYears < 1,
         nearFamily,
       });
+      updatePlayerWounds(gameHours);
       if (player.needs.health <= 0.001) die();
     } else {
       st.deathTimer += dt;
@@ -80,14 +88,35 @@ export function Simulation() {
     updateSiblings(world, dt, rng);
     updateHyenas(world, dt, rng);
     updateCarcasses(dt);
+    updateWildLions(world, dt, rng);
+    updateCombat(world, dt, rng);
+    updateLifeRole(world, dt, rng);
+    updateReproduction(world, gameHours / 24, dt, rng);
+    if (gameHours > 0) updateWildBodies(gameHours);
     updateDirector(world, dt, rng);
     updateObjectiveTriggers(dt);
     st.exploreTimer -= dt;
     if (st.exploreTimer <= 0) {
       st.exploreTimer = 0.5;
       updateExploration(world.size, clock.totalDays);
+      pruneMarks();
     }
   }, -38);
+
+  function updatePlayerWounds(gameHours: number) {
+    const tick = updateWounds(playerBody, gameHours, player.resting, rng);
+    if (tick.healthDelta < 0) {
+      player.needs.health = Math.max(0, player.needs.health + tick.healthDelta);
+      if (playerBody.wounds.some((w) => w.infected)) player.lastDamage = 'wounds';
+    }
+    for (const w of tick.newlyInfected) {
+      events.emit('subtitle', { text: `La herida de tu ${BODY_PART_LABEL[w.part]} se ha infectado: descansa (Z) para curarla`, seconds: 5 });
+    }
+    for (const part of tick.newScars) {
+      events.emit('subtitle', { text: `La herida de tu ${BODY_PART_LABEL[part]} cicatriza: te quedará la marca`, seconds: 4 });
+      recordMilestone(`scar:${part}`, `Una cicatriz en ${partWithArticle(part)} recuerda una pelea`);
+    }
+  }
 
   function die() {
     player.alive = false;
@@ -106,6 +135,20 @@ export function Simulation() {
   }
 
   return null;
+}
+
+/** Heridas y recuperación de los leones ajenos (por horas de juego). */
+function updateWildBodies(gameHours: number): void {
+  for (const l of wildLions) {
+    if (!l.alive) continue;
+    const tick = updateWounds(l.body, gameHours, l.state === 'rest', Math.random);
+    l.health = Math.min(1, Math.max(0, l.health + tick.healthDelta + (l.body.wounds.length === 0 ? 0.04 * gameHours : 0)));
+    if (l.health <= 0) {
+      l.alive = false;
+      l.state = 'dead';
+      l.clip = 'die';
+    }
+  }
 }
 
 function dist(a: { x: number; z: number }, b: { x: number; z: number }): number {

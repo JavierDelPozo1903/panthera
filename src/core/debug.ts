@@ -13,6 +13,13 @@ import { journal, recordMilestone } from '../systems/journal';
 import { audio } from './audio/audioEngine';
 import { clock } from './clock';
 import { useGame } from './store';
+import { setAge } from '../systems/aging';
+import { combat, startCombat } from '../systems/combat';
+import { randomTraits } from '../systems/genetics';
+import { playerRepro } from '../systems/reproduction';
+import { playerBody } from '../systems/wounds';
+import { createWildLion, wildLions } from '../entities/npc/wildLions';
+import { territories } from '../world/territories';
 
 /**
  * Consola de depuración (solo en desarrollo): `window.__panthera` permite inspeccionar
@@ -46,6 +53,21 @@ export function installDebugHooks(get: unknown): void {
     milestone: recordMilestone,
     startHunt: () => startHunt(world(), Math.random),
     relocate: (x: number, z: number) => startRelocation(mother.position.clone().set(x, 0, z)),
+    wildLions,
+    territories,
+    combat,
+    playerBody,
+    playerRepro,
+    setAge: (years: number) => setAge(years, true),
+    /** Hace aparecer un macho nómada a tu lado y empieza una pelea. */
+    fight: (age = 4) => {
+      const x = player.position.x + 3;
+      const z = player.position.z;
+      const rival = createWildLion('nomad', 'Rival', 'male', age, randomTraits(Math.random), x, world().heightAt(x, z), z);
+      wildLions.push(rival);
+      startCombat([rival], 'nomad', null);
+      return rival;
+    },
     hyenas3: () => spawnClan(world(), player.position.x, player.position.z, 3, Math.random),
   };
 }

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { abandonLife, continueAsSibling } from '../core/gameFlow';
+import { abandonLife, continueAsChild, continueAsSibling, HEIR_MIN_YEARS } from '../core/gameFlow';
+import { playerCubs } from '../entities/npc/wildLions';
 import { useGame } from '../core/store';
 import { aliveSiblings } from '../entities/npc/npcState';
 import { journal } from '../systems/journal';
@@ -9,6 +10,8 @@ import { formatAge } from '../systems/lifeStage';
 export function DeathScreen() {
   const info = useGame((s) => s.deathInfo);
   const heirs = useMemo(() => aliveSiblings(), []);
+  const children = useMemo(() => playerCubs(), []);
+  const grownChildren = children.filter((c) => c.ageYears >= HEIR_MIN_YEARS);
   const stats = journal.stats;
   const lastEntries = journal.entries.filter((e) => e.id !== 'death').slice(-5);
   if (!info) return null;
@@ -27,6 +30,10 @@ export function DeathScreen() {
           <Stat label="Tomas de leche" value={String(Math.round(stats.nursed))} />
           <Stat label="Emboscadas" value={String(stats.pounces)} />
           <Stat label="Clanes de hienas" value={String(stats.hyenaEncounters)} />
+          <Stat label="Peleas ganadas" value={String(stats.fightsWon)} />
+          <Stat label="Territorios" value={String(stats.territories)} />
+          <Stat label="Cachorros" value={String(stats.cubsBorn)} />
+          <Stat label="Presas abatidas" value={String(stats.kills)} />
         </dl>
 
         {lastEntries.length > 0 && (
@@ -44,6 +51,16 @@ export function DeathScreen() {
         )}
 
         <div className="mt-10 flex flex-wrap gap-3">
+          {grownChildren.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => continueAsChild(c)}
+              className="rounded-md bg-sand px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-umber transition hover:bg-bone"
+            >
+              Continuar como {c.name} ({c.sex === 'male' ? 'tu hijo' : 'tu hija'})
+            </button>
+          ))}
           {heirs.map((s) => (
             <button
               key={s.id}
@@ -62,8 +79,15 @@ export function DeathScreen() {
             Empezar una nueva vida
           </button>
         </div>
-        {heirs.length > 0 && (
-          <p className="mt-3 text-xs text-bone/50">Modo legado: la historia de la camada continúa con un hermano superviviente.</p>
+        {(heirs.length > 0 || grownChildren.length > 0) && (
+          <p className="mt-3 text-xs text-bone/50">
+            Modo legado: la historia continúa con un hermano superviviente o con tus hijos, que heredan tus rasgos.
+          </p>
+        )}
+        {children.length > grownChildren.length && (
+          <p className="mt-1 text-xs text-bone/40">
+            {children.length - grownChildren.length} de tus cachorros son aún demasiado jóvenes para seguir solos.
+          </p>
         )}
       </div>
     </div>

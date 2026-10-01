@@ -22,7 +22,11 @@ export type Action =
   | 'hints'
   | 'interact'
   | 'journal'
-  | 'map';
+  | 'map'
+  | 'swipe'
+  | 'bite'
+  | 'threat'
+  | 'social';
 
 export const KEY_BINDINGS: Record<Action, string[]> = {
   forward: ['KeyW', 'ArrowUp'],
@@ -44,6 +48,10 @@ export const KEY_BINDINGS: Record<Action, string[]> = {
   interact: ['KeyE'],
   journal: ['KeyJ'],
   map: ['KeyM'],
+  swipe: ['KeyG'],
+  bite: ['KeyB'],
+  threat: ['KeyF'],
+  social: ['KeyY'],
 };
 
 /** Botones del mapeo estándar de la Gamepad API. */
@@ -60,6 +68,11 @@ const PAD_BINDINGS: Partial<Record<Action, number[]>> = {
   sprint: [7, 10], // RT / L3
   pause: [9], // Start
   hints: [8], // Select
+  // En combate los botones frontales cambian de función (el controlador ignora los demás).
+  swipe: [2], // X / Cuadrado
+  bite: [1], // B / Círculo
+  threat: [3], // Y / Triángulo
+  social: [11], // R3
 };
 
 const PREVENT_DEFAULT = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab']);

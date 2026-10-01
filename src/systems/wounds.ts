@@ -12,6 +12,11 @@ export const BODY_PART_LABEL: Record<BodyPart, string> = {
   hindleg: 'pata trasera',
 };
 
+/** Zona con su artículo determinado ("el cuello", "la cara"). */
+export function partWithArticle(part: BodyPart): string {
+  return `${part === 'neck' || part === 'back' ? 'el' : 'la'} ${BODY_PART_LABEL[part]}`;
+}
+
 export interface Wound {
   part: BodyPart;
   /** Gravedad actual [0, 1]. */

@@ -2,6 +2,18 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useWorld } from '../core/store';
 import { carcasses } from '../entities/carcass/carcassState';
 import { hyenas, mother, pride, siblings } from '../entities/npc/npcState';
+import { wildLions } from '../entities/npc/wildLions';
+import { markStrength, scentMarks, territories } from '../world/territories';
+
+/** Colores de los leones ajenos en los mapas. */
+export const WILD_COLOR = {
+  ally: '#e8b85c',
+  child: '#f6e6c4',
+  cub: '#d9c49a',
+  resident: '#8e2a1c',
+  female: '#b06a3a',
+  nomad: '#6b5a48',
+} as const;
 import { herds } from '../entities/prey/preyState';
 import { wind } from '../systems/wind';
 import { player } from '../entities/player/playerState';
@@ -112,7 +124,45 @@ export function Minimap({ size = 176 }: { size?: number }) {
           }
         }
       }
+      // Límites de los territorios (línea discontinua del color de cada manada).
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(r, r, r - 1, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.setLineDash([5, 4]);
+      ctx.lineWidth = 2;
+      for (const t of territories) {
+        const dx = t.center.x - player.position.x;
+        const dz = t.center.z - player.position.z;
+        if (Math.abs(Math.hypot(dx, dz) - t.radius) > RANGE_METERS * 1.5) continue;
+        const sx = (dx * Math.cos(alpha) - dz * Math.sin(alpha)) * screenPerMeter;
+        const sy = (dx * Math.sin(alpha) + dz * Math.cos(alpha)) * screenPerMeter;
+        ctx.strokeStyle = t.color;
+        ctx.beginPath();
+        ctx.arc(r + sx, r + sy, t.radius * screenPerMeter, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.restore();
+      // Marcas de olor recientes.
+      for (const m of scentMarks) {
+        const p = toMap(m.x, m.z, false);
+        if (!p) continue;
+        ctx.globalAlpha = 0.3 + 0.6 * markStrength(m);
+        ctx.fillStyle = m.byPlayer ? '#f3ead7' : '#9b3f2c';
+        ctx.fillRect(p[0] - 1, p[1] - 1, 2, 2);
+        ctx.globalAlpha = 1;
+      }
       for (const c of carcasses) if (c.meatKg > 0.3) dot(toMap(c.position.x, c.position.z, false), 3.5, '#8a2a1c');
+      // Leones ajenos: aliados e hijos siempre; el resto solo si están cerca.
+      for (const l of wildLions) {
+        if (!l.alive) continue;
+        const own = l.role === 'ally' || l.playerChild;
+        const d = Math.hypot(l.position.x - player.position.x, l.position.z - player.position.z);
+        if (!own && d > 140 && l.state !== 'confront') continue;
+        const color = WILD_COLOR[l.playerChild ? 'child' : l.role];
+        dot(toMap(l.position.x, l.position.z, l.role === 'ally' || l.state === 'confront'), l.role === 'cub' ? 2.5 : 3.5, color);
+      }
       for (const s of siblings) if (s.alive) dot(toMap(s.position.x, s.position.z, false), 3, '#e3cfa4');
       // Presas: puntitos verdes oliva (rojizos si huyen).
       for (const h of herds) {

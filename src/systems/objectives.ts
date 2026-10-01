@@ -58,7 +58,15 @@ export function currentObjective(override: string | null): string {
   const chain = activeChain();
   const next = chain?.find((o) => !hasMilestone(o.milestone));
   if (next) return next.text;
-  return stageObjective(useGame.getState().lifeStage, useGame.getState().sex);
+  const { lifeStage, sex, lifeRole } = useGame.getState();
+  // El papel social manda sobre la edad una vez fuera de la manada natal.
+  if (lifeRole === 'king') return 'Defiende tu reino de los nómadas, marca el territorio (Y) y engendra cachorros con tus leonas.';
+  if (lifeRole === 'nomad' && sex === 'male') {
+    return lifeStage === 'subadult'
+      ? 'Sobrevive como nómada: caza solo y propón alianzas (Y) a otros machos jóvenes.'
+      : 'Busca una manada con un residente débil o sin machos y desafíalo: conquista tu reino.';
+  }
+  return stageObjective(lifeStage, sex);
 }
 
 /** Número de objetivos de la etapa completados (para el HUD). */

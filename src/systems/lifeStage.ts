@@ -79,9 +79,24 @@ export function lifePath(sex: Sex): string[] {
     : ['Cachorra', 'Juvenil', 'Cazadora', 'Madre', 'Matriarca'];
 }
 
+export interface LifeProgress {
+  lifeRole: 'pride' | 'nomad' | 'king';
+  hasCoalition: boolean;
+  hasCubs: boolean;
+}
+
 /** Índice del hito alcanzado en `lifePath` (los dos últimos exigen conquistas, no solo edad). */
-export function lifePathIndex(id: LifeStageId): number {
-  return id === 'cub' ? 0 : id === 'juvenile' ? 1 : 2;
+export function lifePathIndex(id: LifeStageId, sex: Sex, progress?: LifeProgress): number {
+  const base = id === 'cub' ? 0 : id === 'juvenile' ? 1 : 2;
+  if (!progress) return base;
+  if (sex === 'male') {
+    if (progress.lifeRole === 'king') return 4;
+    if (progress.hasCoalition && base >= 1) return 3;
+    return progress.lifeRole === 'nomad' ? Math.max(base, 2) : base;
+  }
+  if (progress.hasCubs && id === 'elder') return 4;
+  if (progress.hasCubs) return Math.max(base, 3);
+  return base;
 }
 
 export function formatAge(ageYears: number): string {

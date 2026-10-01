@@ -7,7 +7,7 @@ import { GameLoop } from './core/GameLoop';
 import { useGame, useQuality } from './core/store';
 import { Simulation } from './core/Simulation';
 import { Carcasses } from './entities/carcass/Carcasses';
-import { Hyenas, MotherLion, PrideLions, Siblings } from './entities/npc/NpcRenderers';
+import { Hyenas, MotherLion, PrideLions, Siblings, WildLions } from './entities/npc/NpcRenderers';
 import { PreyRenderer } from './entities/prey/PreyRenderer';
 import { CameraRig } from './entities/player/CameraRig';
 import { Player } from './entities/player/Player';
@@ -63,6 +63,7 @@ export function GameCanvas() {
           <MotherLion />
           <Siblings />
           <PrideLions />
+          <WildLions />
           <PreyRenderer />
           <Hyenas />
           <Carcasses />

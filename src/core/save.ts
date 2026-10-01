@@ -2,9 +2,15 @@ import { del, get, set } from 'idb-keyval';
 import { mother, pride, siblings, type Sex as NpcSex } from '../entities/npc/npcState';
 import { exploration } from '../systems/exploration';
 import { player, type Needs } from '../entities/player/playerState';
+import { serializeWildLions, type WildLionSave } from '../entities/npc/wildLions';
+import { playerTraits, type Traits } from '../systems/genetics';
+import { lifeRoleState } from '../systems/lifeRole';
+import { playerRepro } from '../systems/reproduction';
+import { playerBody, type Body } from '../systems/wounds';
+import { territories, type TerritoryOwner } from '../world/territories';
 import { journal, type JournalEntry, type LifeStats } from '../systems/journal';
 import { clock, type ClockSnapshot } from './clock';
-import type { Settings, Sex } from './store';
+import { useGame, type LifeRole, type Settings, type Sex } from './store';
 
 const SETTINGS_KEY = 'panthera:settings:v1';
 const SAVE_KEY = 'panthera:save:v3';
@@ -24,6 +30,16 @@ export interface SaveGame {
   };
   journal: { entries: JournalEntry[]; stats: LifeStats };
   explored?: Uint8Array;
+  /** Fase 4: genética, heridas, territorios, leones ajenos y reproducción. */
+  lions?: {
+    traits: Traits;
+    body: Body;
+    lifeRole: LifeRole;
+    lifeRoleState: typeof lifeRoleState;
+    repro: typeof playerRepro;
+    territoryOwners: Record<number, TerritoryOwner>;
+    wild: WildLionSave[];
+  };
 }
 
 // IndexedDB puede no estar disponible (modo privado, políticas del navegador):
@@ -78,6 +94,15 @@ export function captureSave(sex: Sex, seed: number): SaveGame {
     },
     journal: { entries: [...journal.entries], stats: { ...journal.stats } },
     explored: new Uint8Array(exploration.revealed),
+    lions: {
+      traits: { ...playerTraits },
+      body: { wounds: playerBody.wounds.map((w) => ({ ...w })), scars: [...playerBody.scars] },
+      lifeRole: useGame.getState().lifeRole,
+      lifeRoleState: { ...lifeRoleState },
+      repro: { ...playerRepro, mateTraits: playerRepro.mateTraits ? { ...playerRepro.mateTraits } : null },
+      territoryOwners: Object.fromEntries(territories.map((t) => [t.id, t.owner])),
+      wild: serializeWildLions(),
+    },
   };
 }
 

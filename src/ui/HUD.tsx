@@ -16,6 +16,12 @@ import {
 } from '../systems/lifeStage';
 import { useWorld } from '../core/store';
 import { availableInteraction } from '../systems/interactions';
+import { availableSocial } from '../systems/social';
+import { combat } from '../systems/combat';
+import { allies } from '../entities/npc/wildLions';
+import { journal } from '../systems/journal';
+import { CombatHud } from './hud/CombatHud';
+import { LionStatusPanel } from './hud/LionStatusPanel';
 import { BIOMES } from '../world/biomes';
 import { DangerVignette } from './hud/DangerVignette';
 import { NeedsPanel } from './hud/NeedsPanel';
@@ -83,6 +89,7 @@ export function HUD() {
         <div className={`space-y-2 transition-opacity duration-1000 ${active ? 'opacity-100' : 'opacity-40'}`}>
           <ClockCard hud={hud} />
           <LifeCard ageYears={hud.ageYears} />
+          <LionStatusPanel />
         </div>
         <ObjectiveBanner />
       </div>
@@ -111,6 +118,7 @@ export function HUD() {
       </div>
       <Toasts />
       <TakedownBar />
+      <CombatHud />
       {showHints && <ControlsHint />}
       <Subtitles />
       {import.meta.env.DEV && <FpsMonitor />}
@@ -118,19 +126,34 @@ export function HUD() {
   );
 }
 
-/** Acción disponible con la tecla E. */
+/** Acciones disponibles con las teclas E (interacción) e Y (social). */
 function InteractionPrompt() {
   const world = useWorld();
-  const prompt = useTicker(() => {
-    if (player.action) return { key: 'E', label: 'Parar', active: true };
-    const i = availableInteraction(world);
-    return i ? { key: 'E', label: i.label, active: false } : null;
+  const prompts = useTicker(() => {
+    const list: { key: string; label: string }[] = [];
+    if (combat.active) return list;
+    if (player.action) list.push({ key: 'E', label: 'Parar' });
+    else {
+      const i = availableInteraction(world);
+      if (i) list.push({ key: 'E', label: i.label });
+    }
+    const social = availableSocial();
+    // Marcar es siempre posible para un macho adulto: solo se anuncia si no hay nada más.
+    if (social && (social.kind !== 'mark' || list.length === 0)) list.push({ key: 'Y', label: social.label });
+    return list;
   }, 8);
-  if (!prompt) return <div className="h-7" />;
+  if (prompts.length === 0) return <div className="h-7" />;
   return (
-    <div className="flex h-7 items-center gap-2 rounded-full bg-black/55 px-3 text-sm text-bone backdrop-blur-sm animate-fadeIn">
-      <kbd className="rounded bg-sand px-1.5 text-xs font-bold text-umber">{prompt.key}</kbd>
-      {prompt.label}
+    <div className="flex h-7 gap-2">
+      {prompts.map((prompt) => (
+        <div
+          key={prompt.key}
+          className="flex h-7 items-center gap-2 rounded-full bg-black/55 px-3 text-sm text-bone backdrop-blur-sm animate-fadeIn"
+        >
+          <kbd className="rounded bg-sand px-1.5 text-xs font-bold text-umber">{prompt.key}</kbd>
+          {prompt.label}
+        </div>
+      ))}
     </div>
   );
 }
@@ -142,7 +165,7 @@ function useActivity(): boolean {
   useEffect(() => {
     const id = window.setInterval(() => {
       const busy =
-        input.moveMagnitude > 0.1 || player.stamina < 0.999 || player.gait === 'roar' || clock.timeScale > 1;
+        input.moveMagnitude > 0.1 || player.stamina < 0.999 || player.gait === 'roar' || clock.timeScale > 1 || combat.active;
       if (busy) lastActive.current = performance.now();
       setActive(performance.now() - lastActive.current < IDLE_FADE_SECONDS * 1000);
     }, 250);
@@ -155,11 +178,13 @@ function useActivity(): boolean {
 function LifeCard({ ageYears }: { ageYears: number }) {
   const sex = useGame((s) => s.sex);
   const stageId = useGame((s) => s.lifeStage);
+  const lifeRole = useGame((s) => s.lifeRole);
+  const social = useTicker(() => ({ hasCoalition: allies().length > 0, hasCubs: journal.stats.cubsBorn > 0 }), 1);
   const stage = stageAt(ageYears);
   const next = nextStage(stage);
   const progress = next ? saturate((ageYears - stage.fromYears) / (stage.toYears - stage.fromYears)) : 1;
   const path = lifePath(sex);
-  const reached = lifePathIndex(stageId);
+  const reached = lifePathIndex(stageId, sex, { lifeRole, ...social });
 
   return (
     <div className="rounded-lg bg-gradient-to-br from-umber/75 to-umber/40 px-4 py-3 shadow-lg backdrop-blur-sm">
@@ -274,6 +299,8 @@ const HINTS: [string, string][] = [
   ['Espacio', 'Saltar'],
   ['E', 'Mamar / beber / comer'],
   ['R', 'Rugir · de cachorro: llamar a mamá'],
+  ['Y', 'Aliarse / aparearse / marcar'],
+  ['G · B · F', 'Pelea: zarpazo · mordisco · amenaza'],
   ['Z', 'Tumbarse a descansar'],
   ['J', 'Diario de campo'],
   ['M', 'Mapa del territorio'],

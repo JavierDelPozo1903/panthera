@@ -35,6 +35,8 @@ Abre `http://localhost:5173`. Otros scripts:
 | Espacio         | A                   | Saltar                              |
 | E               | X                   | Mamar / beber / comer (contextual)  |
 | R               | Y                   | Rugir · de cachorro, llamar a mamá  |
+| Y               | R3                  | Aliarse / aparearse / marcar territorio (contextual) |
+| G / B / F       | X / B / Y (en pelea)| Pelea: zarpazo / mordisco / amenaza |
 | Z               | Cruceta abajo       | Tumbarse a descansar                |
 | J               | Cruceta arriba      | Diario de campo                     |
 | M               | —                   | Mapa del territorio                 |
@@ -88,12 +90,32 @@ objetivos enseña las mecánicas mientras un **director de eventos** marca el ri
   presas miran, carga de intercepción). Los adultos comen primero.
 - **Mapa completo (M)** con niebla de guerra, avistamientos de manadas y hienas, y viento.
 
-`npm test` ejecuta simulaciones sin navegador (Vitest) que comprueban la detección de las presas y
-el éxito de la caza cooperativa: ≈33 % de día y ≈65 % de noche sin luna con tres leonas.
+### Territorios, peleas y descendencia (Fase 4)
 
-Si mueres (hienas, hambre o sed) verás el epílogo de tu vida y podrás **continuar como un hermano
-superviviente** (modo legado). En desarrollo, `window.__panthera` expone utilidades de depuración
-(`startHunt()`, `hyenas3()`, `milestone(id)`, estado del jugador y de la IA).
+- **Territorios**: tu manada natal y dos manadas rivales (1–2 machos residentes y 3 leonas cada
+  una), más grupos de machos nómadas. Se dibujan en el minimapa y en el mapa completo (los rivales,
+  cuando exploras su centro) junto a las marcas de olor.
+- **Ciclo de vida del macho**: entre los 2 y los 4 años el padre te expulsa; al salir del territorio
+  natal eres **nómada** y tus hermanos varones forman coalición contigo. Puedes proponer alianzas a
+  otros nómadas (Y). Si entras en un territorio rival, el residente te advierte y, si no te vas,
+  pelea. Vencer a todos los residentes con 3,5 años o más te convierte en **rey**; desde entonces
+  llegan coaliciones nómadas a desafiarte. Los rugidos se cuentan: si sois más, la manada calla.
+- **Combate por posturas** (G zarpazo, B mordisco, F amenaza): salud, aliento y moral para cada
+  luchador; un zarpazo durante la preparación de un mordisco lo interrumpe. Huye alejándote.
+- **Heridas localizadas** (cara, cuello, lomo, patas) que sangran, se curan más rápido descansando,
+  pueden infectarse y, si fueron graves, dejan **cicatriz**. Las de las patas te ralentizan.
+- **Reproducción**: celo, apareamiento (Y), gestación de ~110 días biológicos (menos de dos días de
+  juego) y camadas de 1–4 cachorros que **heredan los rasgos** de sus padres (melena, tamaño,
+  agresividad, pelaje). Como hembra, te apareas con los machos de tu manada; como rey, con tus leonas.
+- **Legado**: al morir puedes continuar como un hermano superviviente o como un hijo o hija de dos
+  años o más, que conserva sus rasgos heredados.
+
+`npm test` ejecuta simulaciones sin navegador (Vitest): detección de las presas y éxito de la caza
+cooperativa (≈33 % de día y ≈65 % de noche sin luna con tres leonas), y la Fase 4 (herencia, heridas
+y cicatrices, intrusión territorial, peleas, expulsión, conquista y camadas).
+
+En desarrollo, `window.__panthera` expone utilidades de depuración (`startHunt()`, `hyenas3()`,
+`fight(edad)`, `setAge(años)`, `milestone(id)`, territorios, leones ajenos y estado del jugador).
 
 Decisiones de arquitectura relevantes:
 

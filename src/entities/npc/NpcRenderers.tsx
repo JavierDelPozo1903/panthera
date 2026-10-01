@@ -10,6 +10,8 @@ import { HyenaActor } from '../hyena/HyenaActor';
 import { LionActor } from '../lion/LionActor';
 import { player } from '../player/playerState';
 import { hyenas, mother, pride, siblings, type Agent } from './npcState';
+import { wildLions, type WildLion } from './wildLions';
+import { visibleManeDarkness } from '../../systems/genetics';
 
 /** Pendiente suavizada por actor. */
 const pitchOf = new WeakMap<AnimalActor, number>();
@@ -165,6 +167,72 @@ export function Hyenas() {
       if (alive.has(id)) continue;
       group.remove(actor.object);
       actor.dispose();
+      pool.delete(id);
+    }
+  }, -34);
+
+  return <primitive object={group} />;
+}
+
+/** Más allá de esta distancia los leones ajenos no se dibujan ni se animan. */
+const WILD_DRAW_DISTANCE = 320;
+
+/** Clave del modelo: cambia al crecer (hasta adulto) para reconstruir tamaño y melena. */
+function wildModelKey(l: WildLion): string {
+  const step = l.ageYears < 5 ? Math.floor(l.ageYears / GROWTH_STEP_YEARS) : 99;
+  return `${l.id}:${step}`;
+}
+
+/**
+ * Leones ajenos (residentes, leonas rivales, nómadas, aliados y los hijos del jugador).
+ * Los actores se crean al acercarse y se reconstruyen al crecer; los rasgos heredados
+ * (melena, tono del pelaje) se ven en el modelo.
+ */
+export function WildLions() {
+  const world = useWorld();
+  const group = useMemo(() => new THREE.Group(), []);
+  const pool = useMemo(() => new Map<string, { key: string; actor: LionActor }>(), []);
+  useEffect(
+    () => () => {
+      for (const e of pool.values()) e.actor.dispose();
+      pool.clear();
+    },
+    [pool],
+  );
+
+  useFrame((_, rawDt) => {
+    if (paused()) return;
+    const dt = Math.min(rawDt, 0.05);
+    const seen = new Set<string>();
+    for (const l of wildLions) {
+      const near = Math.hypot(l.position.x - player.position.x, l.position.z - player.position.z) < WILD_DRAW_DISTANCE;
+      if (!near) continue;
+      seen.add(l.id);
+      const key = wildModelKey(l);
+      let entry = pool.get(l.id);
+      if (entry && entry.key !== key) {
+        group.remove(entry.actor.object);
+        entry.actor.dispose();
+        entry = undefined;
+      }
+      if (!entry) {
+        const actor = new LionActor({
+          sex: l.sex,
+          ageYears: l.ageYears,
+          maneDarkness: visibleManeDarkness(l.traits, l.health),
+          furTint: l.traits.furTint,
+        });
+        entry = { key, actor };
+        pool.set(l.id, entry);
+        group.add(actor.object);
+      }
+      if (!l.alive) l.clip = 'die';
+      syncActor(entry.actor, l, world, dt);
+    }
+    for (const [id, entry] of pool) {
+      if (seen.has(id)) continue;
+      group.remove(entry.actor.object);
+      entry.actor.dispose();
       pool.delete(id);
     }
   }, -34);

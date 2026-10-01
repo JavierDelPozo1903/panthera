@@ -10,6 +10,10 @@ import { adultsFeasting } from '../../ai/director';
 import { distXZ } from '../../ai/steering';
 import { tumbleSibling } from '../../ai/siblingBrain';
 import { availableInteraction } from '../../systems/interactions';
+import { combat, playerCombatAction, playerCombatMove } from '../../systems/combat';
+import { playerTraits } from '../../systems/genetics';
+import { availableSocial } from '../../systems/social';
+import { playerBody, woundSpeedFactor } from '../../systems/wounds';
 import { journal, recordMilestone } from '../../systems/journal';
 import { canRoar, GROWTH_STEP_YEARS, physicalMaturity } from '../../systems/lifeStage';
 import { needsSpeedFactor } from '../../systems/needs';
@@ -34,6 +38,7 @@ const L = lionData.locomotion;
 const GRAVITY = 20;
 const JUMP_SPEED = Math.sqrt(2 * GRAVITY * L.jumpHeightM);
 const ROAR_SECONDS = 3.4;
+const MARK_SECONDS = 2.2;
 const WORLD_MARGIN = 12;
 
 const GAIT_OF_CLIP: Record<LionClipName, PlayerGait> = {
@@ -62,12 +67,21 @@ export function Player() {
   const world = useWorld();
   const sex = useGame((s) => s.sex);
   const growthStep = useGame((s) => s.growthStep);
+  const family = useGame((s) => s.familyVersion);
   const { world: physics, rapier } = useRapier();
 
   // El modelo se reconstruye en cada escalón de crecimiento: tamaño, manchas y melena.
   const actor = useMemo(
-    () => new LionActor({ sex, ageYears: Math.max(player.ageYears, growthStep * GROWTH_STEP_YEARS), maneDarkness: 0.55 }),
-    [sex, growthStep],
+    () =>
+      new LionActor({
+        sex,
+        ageYears: Math.max(player.ageYears, growthStep * GROWTH_STEP_YEARS),
+        maneDarkness: playerTraits.maneDarkness,
+        furTint: playerTraits.furTint,
+      }),
+    // `family` cambia en el modo legado: nuevo protagonista, nuevos rasgos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sex, growthStep, family],
   );
   useEffect(() => {
     player.scale = actor.scale;
@@ -101,7 +115,7 @@ export function Player() {
     };
   }, [physics, rapier, actor, phys]);
 
-  const st = useMemo(() => ({ roarTimer: 0, pitch: 0, roll: 0, cover: 0, ambush: false, actionSfx: 0 }), []);
+  const st = useMemo(() => ({ roarTimer: 0, markTimer: 0, pitch: 0, roll: 0, cover: 0, ambush: false, actionSfx: 0 }), []);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
@@ -142,6 +156,34 @@ export function Player() {
       return;
     }
     updateTakedown(dt, 0);
+
+    // --- Combate: zarpazo (G), mordisco (B), amenaza (F) -------------------------------------
+    if (combat.active) {
+      if (input.consume('swipe')) playerCombatMove('swipe');
+      if (input.consume('bite')) playerCombatMove('bite');
+      if (input.consume('threat')) playerCombatMove('threat');
+      // En plena pelea no hay tiempo para tumbarse, comer ni rugir.
+      for (const a of ['crouch', 'rest', 'interact', 'roar', 'social'] as const) input.consume(a);
+      p.crouching = false;
+      p.resting = false;
+      st.markTimer = 0;
+    } else {
+      input.consume('swipe');
+      input.consume('bite');
+      input.consume('threat');
+    }
+
+    // --- Acción social (Y): aparearse, aliarse, marcar ------------------------------------------
+    if (input.consume('social') && st.roarTimer <= 0 && st.markTimer <= 0) {
+      const social = availableSocial();
+      if (social) {
+        p.resting = false;
+        p.crouching = false;
+        p.action = null;
+        if (social.kind === 'mark') st.markTimer = MARK_SECONDS;
+        social.run();
+      }
+    }
 
     // --- Acciones discretas ------------------------------------------------------------
     if (input.consume('crouch')) {
@@ -219,11 +261,11 @@ export function Player() {
     }
 
     // --- Dirección deseada relativa a la cámara ------------------------------------------
-    const moving = input.moveMagnitude > 0.1 && st.roarTimer <= 0 && !p.action;
+    const moving = input.moveMagnitude > 0.1 && st.roarTimer <= 0 && st.markTimer <= 0 && !p.action;
     if (moving && p.resting) p.resting = false;
     // Capacidades según la edad: un cachorro corre a menos de la mitad y se agota antes.
     const maturity = physicalMaturity(p.ageYears);
-    const ability = (0.42 + 0.58 * maturity) * needsSpeedFactor();
+    const ability = (0.42 + 0.58 * maturity) * needsSpeedFactor() * woundSpeedFactor(playerBody);
     const top = topSpeedMs(sex) * ability;
     let turnPenalty = 1;
     if (moving) {
@@ -355,9 +397,14 @@ export function Player() {
 
     // --- Animación ---------------------------------------------------------------------------
     st.roarTimer = Math.max(0, st.roarTimer - dt);
+    st.markTimer = Math.max(0, st.markTimer - dt);
+    const fightMove = combat.active ? playerCombatAction() : null;
     let clip: LionClipName;
     if (!p.grounded) clip = 'jump';
+    else if (fightMove) clip = fightMove === 'threat' ? 'snarl' : fightMove;
+    else if (combat.active && p.speed < 0.6) clip = 'snarl';
     else if (st.roarTimer > 0) clip = 'roar';
+    else if (st.markTimer > 0) clip = 'mark';
     else if (p.action) clip = p.action;
     else if (p.swimming) clip = 'swim';
     else if (p.resting) clip = 'rest';
@@ -368,7 +415,8 @@ export function Player() {
     else clip = 'run';
 
     const prev = actor.currentClip;
-    const fade = clip === 'rest' || prev === 'rest' ? 0.9 : clip === 'jump' || prev === 'jump' ? 0.12 : 0.28;
+    const fade =
+      clip === 'rest' || prev === 'rest' ? 0.9 : clip === 'jump' || prev === 'jump' || clip === 'swipe' || clip === 'bite' ? 0.12 : 0.28;
     actor.play(clip, fade);
     actor.matchSpeed(clip === 'swim' ? Math.max(p.speed, 0.8) : p.speed);
     actor.update(dt);

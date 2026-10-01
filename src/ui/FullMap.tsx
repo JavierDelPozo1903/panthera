@@ -8,6 +8,11 @@ import { player } from '../entities/player/playerState';
 import { exploration, FOG_CELLS, isRevealed } from '../systems/exploration';
 import { wind } from '../systems/wind';
 import { getWorldMapImage } from './mapImage';
+import { WILD_COLOR } from './Minimap';
+import { wildLions } from '../entities/npc/wildLions';
+import { markStrength, residentsOf, scentMarks, territories } from '../world/territories';
+
+const OWNER_LABEL = { natal: 'tu manada natal', rival: 'manada rival', player: 'tu reino' } as const;
 
 const PAPER = 'rgb(233, 220, 192)';
 const INK = '#2a1d14';
@@ -83,6 +88,49 @@ export function FullMap() {
         ctx.fillText('kopje', x, y + 4);
       }
 
+      // Territorios: se conocen al explorar su centro (o si son tuyos).
+      for (const t of territories) {
+        const known = t.owner !== 'rival' || isRevealed(world.size, t.center.x, t.center.z);
+        if (!known) continue;
+        const [x, y] = toPx(t.center.x, t.center.z);
+        const rad = (t.radius / world.size) * S;
+        ctx.save();
+        ctx.globalAlpha = 0.14;
+        ctx.fillStyle = t.color;
+        ctx.beginPath();
+        ctx.arc(x, y, rad, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = t.owner === 'player' ? 3 : 2;
+        ctx.setLineDash([8, 6]);
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = INK;
+        ctx.font = `600 ${Math.max(12, S * 0.018)}px "Cormorant Garamond", Georgia, serif`;
+        ctx.fillText(`${t.owner === 'player' ? '♛ ' : ''}${t.name}`, x, y - rad * 0.55);
+        ctx.font = `italic ${Math.max(10, S * 0.014)}px "Cormorant Garamond", Georgia, serif`;
+        const residents = t.owner === 'rival' ? residentsOf(t.id).length : 0;
+        ctx.fillText(
+          `${OWNER_LABEL[t.owner]}${t.owner === 'rival' ? ` · ${residents ? `${residents} macho${residents > 1 ? 's' : ''}` : 'sin machos'}` : ''}`,
+          x,
+          y - rad * 0.55 + Math.max(13, S * 0.019),
+        );
+        ctx.font = `italic ${Math.max(11, S * 0.016)}px "Cormorant Garamond", Georgia, serif`;
+      }
+      // Marcas de olor.
+      for (const m of scentMarks) {
+        if (!m.byPlayer && !isRevealed(world.size, m.x, m.z)) continue;
+        const [x, y] = toPx(m.x, m.z);
+        ctx.globalAlpha = 0.25 + 0.7 * markStrength(m);
+        ctx.fillStyle = m.byPlayer ? '#5a3a18' : '#9b3f2c';
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = INK;
+
       // Avistamientos.
       for (const s of exploration.sightings.values()) {
         const [x, y] = toPx(s.x, s.z);
@@ -140,6 +188,25 @@ export function FullMap() {
         ctx.arc(x, y, 4, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+      }
+
+      // Coalición, hijos y leones ajenos a la vista.
+      for (const l of wildLions) {
+        if (!l.alive) continue;
+        const own = l.role === 'ally' || l.playerChild;
+        if (!own && Math.hypot(l.position.x - player.position.x, l.position.z - player.position.z) > 200) continue;
+        const [x, y] = toPx(l.position.x, l.position.z);
+        ctx.fillStyle = WILD_COLOR[l.playerChild ? 'child' : l.role];
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, l.role === 'cub' ? 3 : 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        if (l.role === 'ally') {
+          ctx.fillStyle = INK;
+          ctx.fillText(l.name, x, y - 7);
+        }
       }
 
       // Jugador.

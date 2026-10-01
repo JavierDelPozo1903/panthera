@@ -45,6 +45,8 @@ export interface WildLion extends Agent<WildState> {
   reproTimer: number;
   /** Días de juego hasta el próximo celo. */
   nextEstrus: number;
+  /** Rasgos del padre de la camada en gestación. */
+  mateTraits: Traits | null;
   /** Id de la madre ('player' si es hija del jugador). */
   motherId: string | null;
   /** Hijo del jugador (candidato al modo legado). */
@@ -79,6 +81,7 @@ export function createWildLion(
     reproState: 'none',
     reproTimer: 0,
     nextEstrus: 5 + Math.random() * 40,
+    mateTraits: null,
     motherId: null,
     playerChild: false,
   };
@@ -89,6 +92,42 @@ export function createWildLion(
 
 export function clearWildLions(): void {
   wildLions.length = 0;
+}
+
+/** Datos guardables de un león ajeno (sin vectores de three.js). */
+export type WildLionSave = Omit<WildLion, 'position' | 'target' | 'home'> & {
+  position: [number, number, number];
+  target: [number, number, number];
+  home: [number, number, number];
+};
+
+export function serializeWildLions(): WildLionSave[] {
+  return wildLions.map((l) => ({
+    ...l,
+    traits: { ...l.traits },
+    body: { wounds: l.body.wounds.map((w) => ({ ...w })), scars: [...l.body.scars] },
+    mateTraits: l.mateTraits ? { ...l.mateTraits } : null,
+    position: l.position.toArray() as [number, number, number],
+    target: l.target.toArray() as [number, number, number],
+    home: l.home.toArray() as [number, number, number],
+  }));
+}
+
+export function restoreWildLions(data: WildLionSave[]): void {
+  wildLions.length = 0;
+  for (const d of data) {
+    const lion: WildLion = {
+      ...d,
+      // Un combate no sobrevive a la carga: vuelven a un estado tranquilo.
+      state: d.state === 'fight' || d.state === 'confront' ? 'rest' : d.state,
+      position: new THREE.Vector3(...d.position),
+      target: new THREE.Vector3(...d.target),
+      home: new THREE.Vector3(...d.home),
+    };
+    wildLions.push(lion);
+    const n = Number(d.id.replace(/\D/g, ''));
+    if (Number.isFinite(n)) nextId = Math.max(nextId, n + 1);
+  }
 }
 
 export const allies = (): WildLion[] => wildLions.filter((l) => l.role === 'ally' && l.alive);

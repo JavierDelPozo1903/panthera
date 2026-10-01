@@ -10,6 +10,7 @@ import { installDebugHooks } from './debug';
 import { input } from './input';
 import { perfStats } from './perfStats';
 import { useGame } from './store';
+import { combat } from '../systems/combat';
 
 const AUTOSAVE_SECONDS = 30;
 
@@ -69,7 +70,7 @@ export function GameLoop() {
       if (input.consume('map')) useGame.setState({ mapOpen: !game.mapOpen, journalOpen: false });
       clock.dayLengthMinutes = game.settings.dayLengthMinutes;
       // El tiempo acelerado se corta si hay peligro.
-      clock.timeScale = input.isDown('timeFast') && director.danger < 0.4 && player.alive ? FAST_FORWARD_MULTIPLIER : 1;
+      clock.timeScale = input.isDown('timeFast') && director.danger < 0.4 && !combat.active && player.alive ? FAST_FORWARD_MULTIPLIER : 1;
       const before = clock.totalDays;
       clock.advance(dt);
       advanceAge(clock.totalDays - before);

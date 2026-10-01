@@ -155,6 +155,7 @@ function updateFleeing(lion: WildLion, world: WorldData, dt: number): boolean {
 }
 
 function updateResident(lion: WildLion, world: WorldData, dt: number, rng: () => number): void {
+  if (lion.state === 'court') return; // lo gestiona la reproducción
   if (updateFleeing(lion, world, dt)) return;
   const t = territoryOf(lion);
   if (!t) return;

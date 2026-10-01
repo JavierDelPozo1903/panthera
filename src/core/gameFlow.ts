@@ -3,6 +3,14 @@ import { resetDirector } from '../ai/director';
 import { clearHyenas } from '../ai/hyenaBrain';
 import { resetGroupHunt } from '../ai/huntBrain';
 import { initHerds } from '../ai/preyBrain';
+import { resetWildBrain } from '../ai/wildLionBrain';
+import { resetCombat } from '../systems/combat';
+import { randomTraits, setPlayerTraits } from '../systems/genetics';
+import { lifeRoleState, resetLifeRole } from '../systems/lifeRole';
+import { resetReproduction } from '../systems/reproduction';
+import { playerBody, resetBody } from '../systems/wounds';
+import { restoreWildLions, wildLions, type WildLion } from '../entities/npc/wildLions';
+import { initTerritories, residentsOf, territories } from '../world/territories';
 import { resetTakedown } from '../systems/takedown';
 import { resetExploration } from '../systems/exploration';
 import { clearCarcasses } from '../entities/carcass/carcassState';
@@ -60,6 +68,13 @@ function setupNewLitter(seed: number): void {
   resetGroupHunt();
   resetTakedown();
   initHerds(world, seed + 99);
+  initTerritories(world, den.motherX, den.motherZ, seed + 7);
+  resetWildBrain();
+  resetCombat();
+  resetLifeRole(rng);
+  resetReproduction();
+  resetBody(playerBody);
+  setPlayerTraits(randomTraits(rng));
   resetExploration();
   setAge(START_AGE_YEARS);
   bumpFamily();
@@ -122,6 +137,19 @@ export async function continueLife(): Promise<void> {
     p.alive = data.alive;
   });
   if (save.explored) resetExploration(save.explored);
+  if (save.lions) {
+    const l = save.lions;
+    setPlayerTraits(l.traits);
+    resetBody(playerBody, l.body);
+    for (const t of territories) {
+      const owner = l.territoryOwners[t.id];
+      if (owner) t.owner = owner;
+    }
+    restoreWildLions(l.wild);
+    Object.assign(lifeRoleState, l.lifeRoleState);
+    resetReproduction(l.repro);
+    useGame.setState({ lifeRole: l.lifeRole });
+  }
   resetPlayer(save.player.x, save.player.y, save.player.z, save.player.heading);
   player.stamina = save.player.stamina;
   resetNeeds(save.player.needs);
@@ -143,8 +171,43 @@ export function continueAsSibling(sibling: Agent<SiblingState>): void {
   resetPlayer(sibling.position.x, world.heightAt(sibling.position.x, sibling.position.z), sibling.position.z, sibling.heading);
   resetNeeds({ satiety: 0.7, hydration: 0.7, energy: 0.8, health: 1, bond: 0.8 });
   useGame.setState({ sex: sibling.sex, phase: 'playing', deathInfo: null });
+  inheritLife(sibling.sex, 'pride');
+  setPlayerTraits(randomTraits(Math.random));
   bumpFamily();
   recordMilestone(`legacy:${sibling.name}`, `Legado: la historia continúa con ${sibling.name}`);
+  input.flush();
+  requestPointerLock();
+  void saveNow();
+}
+
+/** Restablece combate, heridas y papel social al tomar el relevo en otro león. */
+function inheritLife(sex: Sex, role: 'pride' | 'nomad'): void {
+  resetCombat();
+  resetBody(playerBody);
+  resetReproduction();
+  resetLifeRole(Math.random, role);
+  // Si la manada natal ya cambió de machos, no habrá un segundo relevo.
+  lifeRoleState.takeoverDone = sex === 'male' || residentsOf(0).length > 0;
+}
+
+/** Edad mínima de un hijo para continuar su historia (ya no depende de la madre). */
+export const HEIR_MIN_YEARS = 2;
+
+/** Modo legado: la vida continúa en un hijo o hija ya independiente. */
+export function continueAsChild(child: WildLion): void {
+  const world = useGame.getState().world;
+  if (!world || !child.alive || child.ageYears < HEIR_MIN_YEARS) return;
+  const index = wildLions.indexOf(child);
+  if (index >= 0) wildLions.splice(index, 1);
+  resetPlayer(child.position.x, world.heightAt(child.position.x, child.position.z), child.position.z, child.heading);
+  resetNeeds({ satiety: 0.7, hydration: 0.7, energy: 0.8, health: 1, bond: 0.6 });
+  setPlayerTraits(child.traits);
+  useGame.setState({ sex: child.sex, phase: 'playing', deathInfo: null });
+  // Los hijos machos ya han dejado la manada; las hijas siguen en ella.
+  inheritLife(child.sex, child.sex === 'male' ? 'nomad' : 'pride');
+  setAge(child.ageYears);
+  bumpFamily();
+  recordMilestone(`legacy:${child.name}`, `Legado: la estirpe continúa con ${child.name}, ${child.sex === 'male' ? 'tu hijo' : 'tu hija'}`);
   input.flush();
   requestPointerLock();
   void saveNow();
