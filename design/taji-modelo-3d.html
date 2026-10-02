@@ -1,0 +1,941 @@
+<title>Taller de Taji</title>
+<meta name="description" content="Modelo 3D de Taji, Sujeto 03: edades, aspecto y accesorios.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: escenario 3D a sangre a la izquierda, ficha de laboratorio a la derecha; en móvil, escenario arriba y ficha debajo. */
+:root {
+  color-scheme: dark;
+  --bg: #0e0c0a;
+  --panel: #17130f;
+  --panel-2: #1f1a14;
+  --line: #3a3027;
+  --fg: #efe6d6;
+  --muted: #a6978a;
+  --stone: #63e06f;
+  --stone-dim: #2c6b34;
+  --gold: #e7b85a;
+  --blood: #b2412f;
+  --display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --body: "Alegreya Sans", "Gill Sans", "Trebuchet MS", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.45 var(--body); }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 380px; height: 100%; }
+.stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: radial-gradient(120% 90% at 50% 35%, #2a2119 0%, #120f0c 60%, #0b0908 100%); }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#view:active { cursor: grabbing; }
+.tag { position: absolute; left: 16px; top: 16px; display: grid; gap: 2px; pointer-events: none; max-width: calc(100% - 32px); }
+.tag .eyebrow { font: 600 11px/1 var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--stone); }
+.tag h1 { margin: 0; font: 700 clamp(28px, 4vw, 44px)/1 var(--display); letter-spacing: .06em; text-wrap: balance; }
+.tag .moment { font-style: italic; color: var(--muted); }
+.stats { position: absolute; left: 16px; bottom: 16px; display: flex; gap: 18px; flex-wrap: wrap; pointer-events: none; }
+.stat { display: grid; gap: 2px; }
+.stat b { font: 600 18px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.stat span { font: 500 10px/1 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.viewbtns { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.chip { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--fg); background: rgba(23,19,15,.8); border: 1px solid var(--line); padding: 9px 12px; border-radius: 3px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--stone); color: var(--stone); }
+.chip:focus-visible, .seg button:focus-visible, .opt:focus-visible, .sw:focus-visible { outline: 2px solid var(--stone); outline-offset: 2px; }
+aside { background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line); }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: 700 13px/1 var(--display); letter-spacing: .12em; padding: 16px 8px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--stone); }
+[hidden] { display: none !important; }
+.pane { overflow-y: auto; padding: 18px 16px 28px; display: grid; gap: 22px; align-content: start; min-height: 0; flex: 1; }
+.group { display: grid; gap: 10px; }
+.group > h2 { margin: 0; font: 600 11px/1 var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.ages { display: grid; gap: 8px; }
+.age { text-align: left; display: grid; grid-template-columns: 40px 1fr; gap: 4px 12px; align-items: start; background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 12px; color: var(--fg); cursor: pointer; font: inherit; }
+.age .n { grid-row: span 2; font: 700 24px/1 var(--display); color: var(--muted); }
+.age strong { font: 700 15px/1.2 var(--display); letter-spacing: .05em; }
+.age small { color: var(--muted); font-size: 14px; }
+.age[aria-pressed="true"] { border-color: var(--stone); }
+.age[aria-pressed="true"] .n { color: var(--stone); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { font: 500 14px/1 var(--body); background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); border-radius: 3px; padding: 9px 11px; cursor: pointer; }
+.seg button[aria-pressed="true"] { border-color: var(--stone); color: var(--stone); }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.sw { width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; position: relative; }
+.sw[aria-pressed="true"] { border-color: var(--stone); box-shadow: 0 0 0 3px rgba(99,224,111,.18); }
+.swlabel { font-size: 14px; color: var(--muted); }
+.opts { display: grid; gap: 6px; }
+.opt { text-align: left; display: grid; gap: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; color: var(--fg); cursor: pointer; font: inherit; }
+.opt strong { font-weight: 700; font-size: 15px; }
+.opt .fx { font-size: 13.5px; color: var(--muted); }
+.opt .fx em { font-style: normal; color: var(--stone); }
+.opt .fx i { font-style: normal; color: #e08a77; }
+.opt .src { font: 500 10.5px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #8a7a6b; }
+.opt[aria-pressed="true"] { border-color: var(--stone); background: #1c2119; }
+.note { font-size: 14px; color: var(--muted); margin: 0; }
+.toggle { display: flex; align-items: center; gap: 10px; font-size: 15px; cursor: pointer; }
+.toggle input { accent-color: #63e06f; width: 18px; height: 18px; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 62vh auto; height: auto; }
+  .stage { min-height: 420px; }
+  aside { border-left: 0; border-top: 1px solid var(--line); }
+  .pane { overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <section class="stage" aria-label="Modelo 3D de Taji">
+    <canvas id="view" aria-label="Taji en 3D. Arrastra para girar, rueda para acercar."></canvas>
+    <div class="tag">
+      <span class="eyebrow">Sujeto 03 · Ciudadela de Ámbar · 1891</span>
+      <h1>TAJI</h1>
+      <span class="moment" id="moment"></span>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="viewbtns">
+      <button class="chip" id="pose-rest" data-pose="rest" aria-pressed="true">Reposo</button>
+      <button class="chip" data-pose="guard" aria-pressed="false">Guardia</button>
+      <button class="chip" data-pose="roar" aria-pressed="false">Rugido</button>
+      <button class="chip" id="lineup" aria-pressed="false">Comparar edades</button>
+      <button class="chip" id="spin" aria-pressed="true">Girar</button>
+    </div>
+  </section>
+  <aside>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="age" id="tab-age">Edad</button>
+      <button role="tab" aria-selected="false" data-tab="look" id="tab-look">Aspecto</button>
+      <button role="tab" aria-selected="false" data-tab="gear" id="tab-gear">Equipo</button>
+    </div>
+    <div class="pane" id="pane-age" role="tabpanel"></div>
+    <div class="pane" id="pane-look" role="tabpanel" hidden></div>
+    <div class="pane" id="pane-gear" role="tabpanel" hidden></div>
+  </aside>
+</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ------------------------------------------------------------------ datos */
+
+const STAGES = [
+  { id: 'young', n: 'I', name: 'Recién transformado', age: '1 año', moment: 'Acto I · la fuga de la Ciudadela',
+    desc: 'Delgado, desgarbado y asustado de su propio cuerpo. Cabeza grande, cresta corta y la piedra parpadeando.',
+    height: 1.72, muscle: 0.72, head: 1.14, crest: 0.4, mane: 0, glow: 'flicker', scars: 'fresh',
+    gear: { head: 'none', shoulder: 'none', arms: 'wraps', waist: 'rag', gourd: false, charms: [] } },
+  { id: 'warrior', n: 'II', name: 'Joven guerrero', age: '2 años', moment: 'Acto II · la caza de los portadores',
+    desc: 'Ha aprendido a pelear. Más ancho de hombros, cresta crecida y el equipo de los primeros jefes.',
+    height: 2.0, muscle: 0.95, head: 1.02, crest: 0.7, mane: 0, glow: 'steady', scars: 'healed',
+    gear: { head: 'matriarch', shoulder: 'none', arms: 'whip', waist: 'warrior', gourd: true, charms: ['tooth'] } },
+  { id: 'champion', n: 'III', name: 'Campeón', age: '3 años', moment: 'Final del Acto II · el Lago de Sal',
+    desc: 'En la cima de su poder, con los siete fragmentos. Empieza a salirle la melena.',
+    height: 2.18, muscle: 1.12, head: 0.97, crest: 1, mane: 0.45, glow: 'strong', scars: 'healed',
+    gear: { head: 'scope', shoulder: 'scales', arms: 'copper', waist: 'warrior', gourd: true, charms: ['tooth', 'feather', 'pearl'] } },
+  { id: 'king', n: 'IV', name: 'Rey de la Manada', age: '4 años', moment: 'Acto III · la Forma de la Manada',
+    desc: 'Sin piedra. La luz dorada le sale de las cicatrices: el poder de sus aliados. Melena completa.',
+    height: 2.24, muscle: 1.18, head: 0.97, crest: 1, mane: 1, glow: 'gold', scars: 'gold',
+    gear: { head: 'crown', shoulder: 'ivory', arms: 'copper', waist: 'warrior', gourd: true, charms: ['nuru', 'tooth', 'feather'] } },
+];
+
+const FURS = [
+  { id: 'gold', name: 'Dorado', base: '#d9a03c', spot: '#1b110a', src: 'Inicial' },
+  { id: 'sand', name: 'Arena del Kalahari', base: '#cfaa72', spot: '#3d2b1a', src: 'Vencer a los hermanos Voss' },
+  { id: 'amber', name: 'Ámbar oscuro', base: '#a9652a', spot: '#0f0805', src: 'Vencer a El Fantasma' },
+  { id: 'white', name: 'León blanco', base: '#ece3d3', spot: '#8d7f70', src: 'Los 30 expedientes' },
+];
+const PATTERNS = [
+  { id: 'rosettes', name: 'Rosetas' },
+  { id: 'spots', name: 'Motas' },
+  { id: 'few', name: 'Pocas' },
+];
+const CRESTS = [
+  { id: 'stone', name: 'Verde piedra', color: '#5cf06a' },
+  { id: 'gold', name: 'Dorada', color: '#ffcf5a' },
+  { id: 'blood', name: 'Roja', color: '#ff5a3c' },
+];
+const EYES = [
+  { id: 'amber', name: 'Ámbar con anillo verde' },
+  { id: 'gold', name: 'Oro' },
+];
+const PAINTS = [
+  { id: 'none', name: 'Ninguna' },
+  { id: 'ash', name: 'Ceniza' },
+  { id: 'clay', name: 'Barro rojo' },
+];
+
+const GEAR = {
+  head: { label: 'Cabeza', items: [
+    { id: 'none', name: 'Nada' },
+    { id: 'matriarch', name: 'Diadema de la Matriarca', fx: 'El rugido aturde un 40 % más', cost: '−10 % de aguante', src: 'Jefa: La Matriarca' },
+    { id: 'scope', name: 'Monóculo de latón de Mara', fx: 'Ves enemigos a través de la niebla', cost: '−5 % de daño', src: 'Jefa: La Cazadora' },
+    { id: 'crown', name: 'Corona de huesos de Jabari', fx: '+20 % de daño y furia el doble de rápido', cost: '+10 % de daño recibido', src: 'Misión: El Rey Ciego' },
+  ] },
+  shoulder: { label: 'Hombros', items: [
+    { id: 'none', name: 'Nada' },
+    { id: 'scales', name: 'Hombrera de escamas del Delta', fx: '−15 % de daño recibido', cost: 'Esquiva un 10 % más corta', src: 'Jefe: El Señor del Delta' },
+    { id: 'ivory', name: 'Marfil devuelto', fx: '−10 % de daño y postura más dura', cost: '−8 % de velocidad', src: 'Misión: El cementerio de los elefantes' },
+  ] },
+  arms: { label: 'Brazos', items: [
+    { id: 'none', name: 'Nada' },
+    { id: 'wraps', name: 'Vendas de la Ciudadela', fx: '+5 % de vida', cost: 'Ninguno', src: 'Inicial' },
+    { id: 'whip', name: 'Látigo de cadena de Rook', fx: 'El golpe pesado alcanza a distancia y lanza rayos de piedra', cost: '−10 % de aguante', src: 'Jefe: Rook' },
+    { id: 'copper', name: 'Brazaletes de cobre', fx: '+15 % de daño de garra', cost: 'Paradas un 5 % más caras', src: 'Tienda de Bwana Ratel' },
+  ] },
+  waist: { label: 'Cintura', items: [
+    { id: 'rag', name: 'Taparrabos raído', fx: 'La placa del Sujeto 03', cost: 'Ninguno', src: 'Inicial' },
+    { id: 'warrior', name: 'Taparrabos de guerrero', fx: '+5 % de aguante', cost: 'Ninguno', src: 'Las leonas de Zola' },
+  ] },
+};
+const CHARMS = [
+  { id: 'tooth', name: 'Diente de hiena', fx: '+10 % de daño de mordisco', cost: '−5 % de vida', src: 'Jefa: La Matriarca' },
+  { id: 'feather', name: 'Pluma del secretario', fx: 'Esquiva invulnerable 0,06 s más', cost: '−5 % de daño', src: 'Prueba de la resistencia' },
+  { id: 'pearl', name: 'Perla de sal', fx: 'Regeneras vida en combate', cost: '−1 carga de savia', src: 'Jefa: La Leona de Sal' },
+  { id: 'nuru', name: 'Hueso de Nuru', fx: '+regeneración al estar herido', cost: 'Ninguno', src: 'Misión: El hueso de Nuru' },
+];
+
+const state = {
+  stage: 1,
+  fur: 'gold', pattern: 'rosettes', crest: 'stone', eyes: 'amber', paint: 'none', scars: true,
+  gear: structuredClone(STAGES[1].gear),
+  pose: 'rest', spin: true, lineup: false,
+};
+
+/* ------------------------------------------------------------------ escena */
+
+const canvas = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x120f0c, 8, 20);
+const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 60);
+
+scene.add(new THREE.HemisphereLight(0xffe2b8, 0x2a1e14, 0.75));
+const key = new THREE.DirectionalLight(0xfff0dc, 2.6);
+key.position.set(2.6, 4.2, 3.2);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -3; key.shadow.camera.right = 3; key.shadow.camera.top = 3; key.shadow.camera.bottom = -1;
+key.shadow.bias = -0.0004;
+key.shadow.normalBias = 0.02;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x9fd8ff, 1.6);
+rim.position.set(-3, 2.5, -3.5);
+scene.add(rim);
+const fill = new THREE.DirectionalLight(0xffb070, 0.5);
+fill.position.set(-3, 1, 2);
+scene.add(fill);
+
+// Suelo: tierra roja con un círculo de luz.
+const groundTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(256, 256, 20, 256, 256, 256);
+  grd.addColorStop(0, '#5a4330'); grd.addColorStop(0.45, '#33261b'); grd.addColorStop(1, '#120f0c');
+  g.fillStyle = grd; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(0,0,0,${Math.random() * 0.12})`; g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const ground = new THREE.Mesh(new THREE.CircleGeometry(9, 64), new THREE.MeshStandardMaterial({ map: groundTex, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* ------------------------------------------------------------------ materiales */
+
+const NOISE = /* glsl */ `
+  varying vec3 vLocal;
+  uniform float uSpotFreq; uniform float uSpotAmt; uniform float uPattern; uniform vec3 uSpotColor; uniform float uSeed;
+  vec3 hash3(vec3 p){ p = vec3(dot(p,vec3(127.1,311.7,74.7)), dot(p,vec3(269.5,183.3,246.1)), dot(p,vec3(113.5,271.9,124.6))); return fract(sin(p)*43758.5453); }
+  vec4 worley(vec3 p){ vec3 i=floor(p), f=fract(p); float d=8.0; float id=0.0; vec3 rr=vec3(0.0);
+    for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++) for(int z=-1;z<=1;z++){ vec3 g=vec3(float(x),float(y),float(z)); vec3 o=hash3(i+g); vec3 r=g+0.15+o*0.7-f; float dd=dot(r,r); if(dd<d){ d=dd; id=o.x; rr=r; } }
+    return vec4(sqrt(d), id, rr.xy); }
+`;
+
+function furMaterial(color, opts = {}) {
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.82, metalness: 0, ...opts.std });
+  m.userData.uniforms = {
+    uSpotFreq: { value: opts.freq ?? 11 }, uSpotAmt: { value: opts.amt ?? 0 }, uPattern: { value: opts.pattern ?? 0 },
+    uSpotColor: { value: new THREE.Color(opts.spot ?? '#1b110a') }, uSeed: { value: opts.seed ?? 3.1 },
+  };
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, m.userData.uniforms);
+    sh.vertexShader = 'varying vec3 vLocal;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vLocal = position;');
+    sh.fragmentShader = NOISE + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      vec4 w = worley(vLocal * uSpotFreq + uSeed);
+      float spot;
+      if (uPattern < 0.5) {
+        float ang = atan(w.w, w.z);
+        float broken = smoothstep(0.35, 0.65, 0.5 + 0.5 * sin(ang * 3.0 + w.y * 40.0));
+        spot = (smoothstep(0.36, 0.3, w.x) - smoothstep(0.24, 0.18, w.x)) * broken;
+      }
+      else if (uPattern < 1.5) { spot = smoothstep(0.26, 0.2, w.x); }
+      else { spot = smoothstep(0.22, 0.17, w.x) * step(0.55, w.y); }
+      vec4 w2 = worley(vLocal * 46.0);
+      diffuseColor.rgb *= 0.9 + 0.16 * w2.x;
+      diffuseColor.rgb = mix(diffuseColor.rgb, uSpotColor, clamp(spot, 0.0, 1.0) * uSpotAmt);`);
+  };
+  m.customProgramCacheKey = () => 'fur';
+  return m;
+}
+
+const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...o });
+const glow = (color, intensity = 1.5) => new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: intensity, roughness: 0.3 });
+
+/* ------------------------------------------------------------------ geometría */
+
+const SPH = new THREE.SphereGeometry(1, 40, 28);
+function ellGeo(rx, ry, rz) { return SPH.clone().scale(rx, ry, rz); }
+
+/** Volumen de músculo: perfil de radios a lo largo de un hueso que cuelga hacia −Y. */
+function limbGeo(len, radii, seg = 22) {
+  const pts = [];
+  const n = 28;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n; // 0 = abajo, 1 = arriba
+    const u = (1 - t) * (radii.length - 1);
+    const k = Math.min(radii.length - 2, Math.floor(u));
+    const f = u - k;
+    const s = (1 - Math.cos(f * Math.PI)) / 2;
+    let r = radii[k] * (1 - s) + radii[k + 1] * s;
+    const edge = Math.min(t, 1 - t);
+    const c = 0.14;
+    if (edge < c) r *= Math.sqrt(Math.max(0, 1 - (1 - edge / c) ** 2));
+    pts.push(new THREE.Vector2(Math.max(r, 0.0005), -len + t * len));
+  }
+  return new THREE.LatheGeometry(pts, seg);
+}
+
+function mesh(geo, mat, parent, x = 0, y = 0, z = 0) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+function group(parent, x = 0, y = 0, z = 0) {
+  const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g); return g;
+}
+
+/** Punto y normal sobre un elipsoide (centro c, radios r) a partir de x, y; delante (+z). */
+function onEllipsoid(c, r, x, y) {
+  const nx = (x - c.x) / r.x, ny = (y - c.y) / r.y;
+  const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+  const p = new THREE.Vector3(x, y, c.z + nz * r.z);
+  const n = new THREE.Vector3(nx / r.x, ny / r.y, nz / r.z).normalize();
+  return { p, n };
+}
+
+function canvasTex(draw, w = 128, h = 128) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+const plateTex = canvasTex((g, w, h) => {
+  const grd = g.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 2);
+  grd.addColorStop(0, '#9ea3a6'); grd.addColorStop(1, '#4b5054');
+  g.fillStyle = grd; g.beginPath(); g.arc(w / 2, h / 2, w / 2, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#2b2f32'; g.lineWidth = 6; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 6, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = '#1d2023'; g.font = '700 58px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('03', w / 2, h / 2 + 4);
+});
+
+/* ------------------------------------------------------------------ Taji */
+
+function buildTaji(stage, look, gear) {
+  const S = STAGES[stage];
+  const m = S.muscle;
+  const fur = FURS.find((f) => f.id === look.fur);
+  const patternIdx = PATTERNS.findIndex((p) => p.id === look.pattern);
+  const crestColor = new THREE.Color(S.glow === 'gold' && look.crest === 'stone' ? '#ffcf5a' : CRESTS.find((c) => c.id === look.crest).color);
+  const stoneColor = new THREE.Color(S.glow === 'gold' ? '#ffcf5a' : '#5cf06a');
+
+  const FUR = furMaterial(fur.base, { spot: fur.spot, amt: look.fur === 'white' ? 0.55 : 0.95, pattern: patternIdx, freq: look.pattern === 'few' ? 10 : 15 });
+  const WHITE = furMaterial(look.fur === 'white' ? '#f6f1e8' : '#efe6d6', { amt: 0 });
+  const DARK = std('#141010', { roughness: 0.9 });
+  const CLAW = new THREE.MeshStandardMaterial({ color: '#ff7a2c', emissive: '#ff4a10', emissiveIntensity: 0.35, roughness: 0.35 });
+  const CLOTH = std('#2a221d', { roughness: 0.95 });
+  const LEATHER = std('#4a2f1e', { roughness: 0.7 });
+  const PAINT = look.paint === 'ash' ? std('#d8d4cc', { roughness: 1 }) : std('#8f2a1c', { roughness: 1 });
+
+  const root = new THREE.Group();
+  const J = {}; // articulaciones
+
+  // --- tronco -------------------------------------------------------------
+  const hips = J.hips = group(root, 0, 1.0, 0);
+  mesh(ellGeo(0.17 * (0.85 + 0.15 * m), 0.14, 0.15), FUR, hips, 0, 0.0, -0.01);
+  const spine = J.spine = group(hips, 0, 0.1, 0);
+  mesh(ellGeo(0.145 * (0.8 + 0.2 * m), 0.2, 0.14), FUR, spine, 0, 0.1, 0);
+  const chest = J.chest = group(spine, 0, 0.26, 0);
+  const cw = 0.24 * (0.72 + 0.32 * m);
+  mesh(ellGeo(cw, 0.25, 0.16 + 0.03 * m), FUR, chest, 0, 0.1, -0.01);
+  // dorsales en V
+  for (const s of [-1, 1]) mesh(ellGeo(0.07 * m, 0.18, 0.11), FUR, chest, s * cw * 0.7, 0.04, -0.03).rotation.z = s * 0.25;
+  // trapecio
+  mesh(ellGeo(cw * 0.75, 0.09, 0.11), FUR, chest, 0, 0.3, -0.04);
+  // pecho y vientre blancos
+  const plateC = new THREE.Vector3(0, 0.02, 0.0);
+  const plateR = new THREE.Vector3(cw * 0.62, 0.36, 0.165 + 0.025 * m);
+  mesh(ellGeo(plateR.x, plateR.y, plateR.z), WHITE, chest, plateC.x, plateC.y, plateC.z);
+  // pectorales
+  for (const s of [-1, 1]) {
+    const pec = mesh(ellGeo(0.1 * (0.75 + 0.3 * m), 0.075 * (0.8 + 0.25 * m), 0.05 + 0.025 * m), WHITE, chest, s * 0.085 * (0.8 + 0.2 * m), 0.17, 0.115 + 0.03 * m);
+    pec.rotation.z = s * -0.15;
+  }
+  // abdominales
+  for (let r = 0; r < 3; r++) for (const s of [-1, 1]) {
+    mesh(ellGeo(0.038 * (0.8 + 0.2 * m), 0.035, 0.016 + 0.01 * m), WHITE, chest, s * 0.04, -0.035 - r * 0.072, 0.15 + 0.022 * m - r * 0.012);
+  }
+  // colmillos negros del pecho (cicatrices de los experimentos)
+  const fangGeo = new THREE.ConeGeometry(0.022, 1, 3, 1);
+  for (let i = -3; i <= 3; i++) {
+    const x = i * 0.045 * (0.85 + 0.2 * m);
+    const len = 0.1 - Math.abs(i) * 0.01;
+    const top = onEllipsoid(plateC, plateR, x, plateC.y + plateR.y * 0.84);
+    const f = mesh(fangGeo, DARK, chest, 0, 0, 0);
+    f.scale.set(1, len, 0.18);
+    f.position.copy(top.p).addScaledVector(top.n, 0.012);
+    f.position.y -= len / 2;
+    f.lookAt(f.position.clone().add(top.n));
+    f.rotateX(Math.PI / 2);
+    f.rotateX(Math.PI);
+    f.rotation.z += 0;
+  }
+  // la piedra
+  const stonePos = onEllipsoid(plateC, plateR, 0, 0.12);
+  const stone = mesh(new THREE.IcosahedronGeometry(0.05, 0), glow(stoneColor, 1.4), chest);
+  stone.position.copy(stonePos.p).addScaledVector(stonePos.n, 0.01);
+  stone.scale.set(1, 1.25, 0.7);
+  if (S.glow === 'gold') { stone.material = std('#5a3b2a', { roughness: 1 }); stone.scale.set(1.1, 1.3, 0.25); } // cicatriz donde estuvo
+  const stoneLight = new THREE.PointLight(stoneColor, 0.2, 0.45, 2);
+  stoneLight.position.copy(stone.position).add(new THREE.Vector3(0, 0, 0.12));
+  stoneLight.visible = false;
+  chest.add(stoneLight);
+  // venas de luz
+  const veinMat = glow(stoneColor, 1.4);
+  const veinCount = S.glow === 'gold' ? 8 : Math.round(3 + 4 * S.crest);
+  for (let v = 0; v < veinCount; v++) {
+    const a = (v / veinCount) * Math.PI * 2 + 0.3;
+    const pts = [];
+    for (let k = 0; k <= 6; k++) {
+      const rr = 0.04 + k * 0.022 * (0.7 + 0.5 * S.crest);
+      const wob = Math.sin(k * 1.7 + v) * 0.12;
+      const x = Math.cos(a + wob) * rr, y = 0.12 + Math.sin(a + wob) * rr * 1.2;
+      if (Math.abs(x) > plateR.x * 0.95 || Math.abs(y - plateC.y) > plateR.y * 0.95) break;
+      pts.push(onEllipsoid(plateC, plateR, x, y).p.addScaledVector(new THREE.Vector3(0, 0, 1), 0.004));
+    }
+    if (pts.length < 3) continue;
+    mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 12, 0.0045, 5), veinMat, chest).castShadow = false;
+  }
+  J.stone = stone; J.stoneLight = stoneLight; J.veinMat = veinMat;
+
+  // --- cuello y cabeza -----------------------------------------------------
+  const neck = J.neck = group(chest, 0, 0.3, 0.02);
+  mesh(limbGeo(0.2, [0.11, 0.1 + 0.02 * m, 0.11 + 0.035 * m]), FUR, neck, 0, 0.16, 0).rotation.x = 0.15;
+  const head = J.head = group(neck, 0, 0.2, 0.05);
+  const hs = S.head;
+  head.scale.setScalar(hs);
+  mesh(ellGeo(0.12, 0.11, 0.14), FUR, head, 0, 0.03, -0.02); // cráneo
+  for (const s of [-1, 1]) {
+    mesh(ellGeo(0.06, 0.055, 0.07), WHITE, head, s * 0.075, -0.03, 0.04); // carrillos
+    const c = mesh(ellGeo(0.04, 0.03, 0.06), FUR, head, s * 0.1, -0.005, 0.0); c.rotation.y = s * 0.4; // pómulo
+    mesh(ellGeo(0.048, 0.016, 0.045), FUR, head, s * 0.05, 0.072, 0.095).rotation.z = s * 0.3; // ceja
+  }
+  const snout = mesh(ellGeo(0.058, 0.05, 0.1), WHITE, head, 0, -0.035, 0.12); // hocico
+  snout.rotation.x = 0.1;
+  mesh(ellGeo(0.052, 0.04, 0.1), FUR, head, 0, 0.022, 0.115).rotation.x = -0.22; // puente de la nariz
+  const nose = mesh(ellGeo(0.03, 0.02, 0.024), DARK, head, 0, -0.0, 0.212); nose.rotation.x = 0.3; // trufa
+  mesh(ellGeo(0.003, 0.014, 0.003), DARK, head, 0, -0.025, 0.214); // surco del labio
+  const jaw = J.jaw = group(head, 0, -0.065, 0.05);
+  mesh(ellGeo(0.055, 0.03, 0.08), WHITE, jaw, 0, -0.02, 0.05);
+  const mouth = mesh(ellGeo(0.05, 0.03, 0.06), std('#5a0f12', { roughness: 0.5 }), head, 0, -0.07, 0.12);
+  mouth.visible = false; J.mouth = mouth;
+  const toothGeo = new THREE.ConeGeometry(0.009, 0.045, 6);
+  const TOOTH = std('#f4efe2', { roughness: 0.3 });
+  for (const s of [-1, 1]) {
+    const up = mesh(toothGeo, TOOTH, head, s * 0.032, -0.06, 0.165); up.rotation.x = Math.PI;
+    mesh(toothGeo, TOOTH, jaw, s * 0.03, 0.008, 0.11);
+  }
+  // ojos
+  const eyeOuter = look.eyes === 'amber' ? glow('#3fe36a', 0.9) : glow('#ffb43a', 0.9);
+  const eyeIris = glow('#ffab2e', 0.75);
+  for (const s of [-1, 1]) {
+    const e = group(head, s * 0.056, 0.045, 0.108);
+    e.rotation.y = s * 0.42;
+    e.rotation.z = s * -0.28;
+    mesh(ellGeo(0.03, 0.016, 0.014), DARK, e, 0, 0, -0.002);
+    mesh(ellGeo(0.026, 0.013, 0.012), eyeOuter, e, 0, 0, 0.002);
+    mesh(ellGeo(0.019, 0.011, 0.012), eyeIris, e, 0, 0, 0.004);
+    mesh(ellGeo(0.004, 0.011, 0.012), DARK, e, 0, 0, 0.007);
+  }
+  // orejas
+  for (const s of [-1, 1]) {
+    const ear = group(head, s * 0.082, 0.1, -0.05);
+    ear.rotation.z = s * -0.55; ear.rotation.y = s * -0.3;
+    mesh(ellGeo(0.03, 0.04, 0.012), FUR, ear, 0, 0.03, 0);
+    mesh(ellGeo(0.024, 0.03, 0.007), DARK, ear, 0, 0.03, -0.008);
+    mesh(ellGeo(0.019, 0.025, 0.007), WHITE, ear, 0, 0.026, 0.006);
+  }
+  // cresta
+  const crestMat = new THREE.MeshStandardMaterial({ color: crestColor.clone().multiplyScalar(0.55), emissive: crestColor, emissiveIntensity: 0.35, roughness: 0.5, side: THREE.DoubleSide });
+  J.crestMat = crestMat;
+  const blade = new THREE.ConeGeometry(0.03, 1, 4, 1);
+  const nb = 11;
+  for (let i = 0; i < nb; i++) {
+    const t = i / (nb - 1);
+    const a = THREE.MathUtils.lerp(0.55, 2.7, t); // de la frente a la nuca
+    const len = S.crest * (0.07 + 0.11 * Math.sin(Math.PI * (0.15 + 0.85 * t)));
+    for (const s of (S.crest > 0.6 && t > 0.3 && t < 0.85 ? [-1, 1] : [0])) {
+      const bg = group(head, s * 0.03, 0.02 + Math.sin(a) * 0.125, -0.01 + Math.cos(a) * 0.13);
+      bg.rotation.x = -(a - Math.PI / 2) - 0.55 - t * 0.4;
+      bg.rotation.z = s * 0.35;
+      const b = mesh(blade, crestMat, bg, 0, len / 2, 0);
+      b.scale.set(s ? 0.7 : 1, len, 0.35);
+    }
+  }
+  // melena (crece con la edad)
+  if (S.mane > 0) {
+    const maneMat = furMaterial(S.glow === 'gold' ? '#b77d2c' : '#8f5d26', { amt: 0 });
+    const tipMat = furMaterial(S.glow === 'gold' ? '#e0b45a' : '#b98a3e', { amt: 0 });
+    const Z = new THREE.Vector3(0, 0, 1);
+    // volumen de la melena detrás de la cabeza y por el cuello
+    mesh(ellGeo(0.13 + 0.08 * S.mane, 0.15 + 0.08 * S.mane, 0.1 + 0.06 * S.mane), maneMat, head, 0, -0.04, -0.09);
+    mesh(ellGeo(0.12 + 0.07 * S.mane, 0.14 + 0.05 * S.mane, 0.1 + 0.05 * S.mane), maneMat, neck, 0, 0.05, -0.04);
+    const ring = Math.round(18 + 22 * S.mane);
+    for (let layer = 0; layer < 3; layer++) for (let i = 0; i < ring; i++) {
+      const a = (i / ring) * Math.PI * 2 + layer * 0.13;
+      const top = Math.sin(a);
+      if (top > 0.7 && layer < 2) continue; // la cresta ocupa lo alto
+      const rr = 0.12 + layer * 0.035 * (0.6 + S.mane);
+      const len = (0.05 + 0.08 * S.mane) * (0.75 + 0.4 * Math.abs(Math.sin(i * 2.3 + layer))) * (1 + layer * 0.2);
+      const g = group(head, Math.cos(a) * rr, -0.02 + top * rr * 0.95, -0.03 - layer * 0.04);
+      const dir = new THREE.Vector3(Math.cos(a) * 0.9, top * 0.4 - 0.75, -0.7).normalize();
+      g.quaternion.setFromUnitVectors(Z, dir);
+      const tm = mesh(SPH, layer === 2 ? tipMat : maneMat, g, 0, 0, len * 0.6);
+      tm.scale.set(0.03 + 0.012 * S.mane, 0.022, len);
+    }
+  }
+
+  // --- brazos ----------------------------------------------------------------
+  for (const s of [-1, 1]) {
+    const side = s === 1 ? 'L' : 'R';
+    const sh = J['sh' + side] = group(chest, s * (cw + 0.03), 0.2, -0.02);
+    mesh(ellGeo(0.065 + 0.03 * m, 0.07 + 0.02 * m, 0.065 + 0.025 * m), FUR, sh, s * 0.01, -0.01, 0); // deltoides
+    const up = J['up' + side] = group(sh, 0, -0.02, 0);
+    mesh(limbGeo(0.34, [0.042, 0.05 + 0.018 * m, 0.055 + 0.026 * m, 0.052 + 0.016 * m, 0.05]), FUR, up);
+    mesh(ellGeo(0.03 + 0.016 * m, 0.07, 0.03 + 0.016 * m), FUR, up, 0, -0.15, 0.03); // bíceps
+    const fo = J['fo' + side] = group(up, 0, -0.33, 0);
+    mesh(limbGeo(0.31, [0.03, 0.036, 0.046 + 0.02 * m, 0.05 + 0.022 * m, 0.045]), FUR, fo);
+    mesh(ellGeo(0.026, 0.09, 0.026), WHITE, fo, 0, -0.16, 0.026); // cara interna clara
+    const hand = J['hand' + side] = group(fo, 0, -0.31, 0);
+    mesh(ellGeo(0.048, 0.06, 0.028), FUR, hand, 0, -0.05, 0);
+    const fingerGeo = limbGeo(0.075, [0.012, 0.016, 0.017]);
+    const clawGeo = new THREE.ConeGeometry(0.009, 0.05, 8);
+    for (let f = 0; f < 4; f++) {
+      const fg = group(hand, (f - 1.5) * 0.028, -0.1, 0.006);
+      fg.rotation.x = 0.35; fg.rotation.z = (f - 1.5) * 0.08;
+      mesh(fingerGeo, FUR, fg);
+      const c = mesh(clawGeo, CLAW, fg, 0, -0.085, 0.012); c.rotation.x = Math.PI - 0.5;
+    }
+    const th = group(hand, s * 0.05, -0.05, 0.02); th.rotation.z = s * 0.7;
+    mesh(limbGeo(0.055, [0.012, 0.015, 0.016]), FUR, th);
+    const tc = mesh(clawGeo, CLAW, th, 0, -0.065, 0.008); tc.rotation.x = Math.PI - 0.5;
+    // pintura de guerra en los brazos
+    if (look.paint !== 'none') for (let b = 0; b < 3; b++) {
+      const band = mesh(new THREE.TorusGeometry(0.05 + 0.022 * m, 0.007, 6, 28), PAINT, fo, 0, -0.08 - b * 0.045, 0);
+      band.rotation.x = Math.PI / 2; band.scale.set(1, 0.85, 1);
+    }
+  }
+
+  // --- piernas digitígradas ---------------------------------------------------
+  for (const s of [-1, 1]) {
+    const side = s === 1 ? 'L' : 'R';
+    const th = J['th' + side] = group(hips, s * 0.12, -0.03, 0);
+    mesh(limbGeo(0.44, [0.06, 0.072 + 0.026 * m, 0.085 + 0.032 * m, 0.088 + 0.026 * m]), FUR, th);
+    const sn = J['sn' + side] = group(th, 0, -0.42, 0);
+    mesh(limbGeo(0.4, [0.032, 0.038, 0.05 + 0.016 * m, 0.056 + 0.02 * m, 0.05]), FUR, sn);
+    const mt = J['mt' + side] = group(sn, 0, -0.39, 0);
+    mesh(limbGeo(0.24, [0.028, 0.03, 0.036]), FUR, mt);
+    const paw = J['paw' + side] = group(mt, 0, -0.24, 0);
+    mesh(ellGeo(0.05, 0.03, 0.08), FUR, paw, 0, -0.015, 0.05);
+    const clawGeo = new THREE.ConeGeometry(0.008, 0.04, 8);
+    for (let f = 0; f < 4; f++) {
+      const c = mesh(clawGeo, CLAW, paw, (f - 1.5) * 0.026, -0.03, 0.135); c.rotation.x = Math.PI / 2 + 0.6;
+    }
+  }
+
+  // --- cola --------------------------------------------------------------------
+  const tailCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, -0.02, -0.15), new THREE.Vector3(0, -0.2, -0.36), new THREE.Vector3(0.06, -0.55, -0.48),
+    new THREE.Vector3(0.18, -0.82, -0.42), new THREE.Vector3(0.3, -0.9, -0.24),
+  ]);
+  const tail = J.tail = group(hips);
+  const tailSeg = 46;
+  for (let i = 0; i <= tailSeg; i++) {
+    const t = i / tailSeg;
+    const p = tailCurve.getPoint(t);
+    const r = THREE.MathUtils.lerp(0.038, 0.02, t);
+    mesh(ellGeo(r, r, r * 1.6), FUR, tail, p.x, p.y, p.z).lookAt(tailCurve.getPoint(Math.min(1, t + 0.02)).add(tail.position));
+  }
+  const tip = tailCurve.getPoint(1);
+  mesh(ellGeo(0.035, 0.032, 0.06), DARK, tail, tip.x + 0.03, tip.y, tip.z + 0.03);
+
+  // --- ropa --------------------------------------------------------------------
+  const waistY = 0.07;
+  const beltPts = [];
+  for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; beltPts.push(new THREE.Vector3(Math.sin(a) * 0.205 * (0.85 + 0.15 * m), waistY + Math.cos(a) * 0.012, Math.cos(a) * 0.17)); }
+  mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(beltPts, true), 48, 0.026, 8, true), LEATHER, hips);
+  const plate = mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.014, 32), [std('#5f6468', { metalness: 0.8, roughness: 0.35 }), new THREE.MeshStandardMaterial({ map: plateTex, metalness: 0.7, roughness: 0.4 }), std('#5f6468')], hips, 0, waistY - 0.005, 0.19);
+  plate.rotation.x = Math.PI / 2;
+  const ragged = gear.waist === 'rag';
+  for (const [z, sgn] of [[0.17, 1], [-0.16, -1]]) {
+    const w = 0.26, h = ragged ? 0.34 : 0.42;
+    const geo = new THREE.PlaneGeometry(w, h, 10, 14);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i);
+      const t = (h / 2 - y) / h; // 0 arriba, 1 abajo
+      pos.setZ(i, sgn * (0.02 * Math.cos((x / w) * Math.PI) + 0.06 * t * t));
+      if (ragged && t > 0.85) pos.setY(i, y + (Math.sin(x * 90) * 0.5 + 0.5) * 0.06);
+    }
+    geo.computeVertexNormals();
+    const cl = mesh(geo, new THREE.MeshStandardMaterial({ color: ragged ? '#3a3a37' : '#3d2418', roughness: 0.95, side: THREE.DoubleSide }), hips, 0, waistY - h / 2 + 0.01, z);
+    if (sgn < 0) cl.rotation.y = Math.PI;
+    if (!ragged) { // cenefa
+      const trim = mesh(new THREE.PlaneGeometry(w, 0.03), new THREE.MeshStandardMaterial({ color: '#b08a45', roughness: 0.6, side: THREE.DoubleSide }), cl, 0, -h / 2 + 0.03, sgn * 0.065);
+      trim.rotation.x = 0;
+    }
+  }
+  // Nuru: el mechón de pelo atado al cinturón
+  mesh(ellGeo(0.018, 0.05, 0.012), std('#c99a52', { roughness: 1 }), hips, -0.17, waistY - 0.07, 0.11).rotation.z = 0.2;
+
+  // --- cicatrices ----------------------------------------------------------------
+  if (look.scars) {
+    const scarMat = S.scars === 'gold' ? glow('#ffcf5a', 1.6) : S.scars === 'fresh' ? std('#9a2a20', { roughness: 0.5 }) : std('#6b4a3c', { roughness: 0.9 });
+    const scar = (parent, x, y, z, rz, len) => { const sc = mesh(new THREE.CapsuleGeometry(0.006, len, 4, 8), scarMat, parent, x, y, z); sc.rotation.z = rz; sc.castShadow = false; return sc; };
+    scar(chest, 0.16, 0.2, 0.17 + 0.02 * m, 0.9, 0.13);
+    scar(chest, -0.12, -0.1, 0.17 + 0.02 * m, -0.6, 0.1);
+    scar(J.upL, 0.07 + 0.035 * m, -0.15, 0.03, 0.4, 0.09);
+    scar(head, 0.075, 0.07, 0.11, 0.9, 0.06);
+    J.scarMat = scarMat;
+  }
+  if (look.paint !== 'none') { // pintura en la cara
+    for (const s of [-1, 1]) for (let k = 0; k < 2; k++) { const p = mesh(new THREE.CapsuleGeometry(0.006, 0.05, 4, 8), PAINT, head, s * (0.1 + k * 0.012), -0.01 - k * 0.025, 0.1 - k * 0.01); p.rotation.z = s * 1.2; }
+  }
+
+  // --- accesorios -------------------------------------------------------------------
+  const BONE = std('#e8dcc2', { roughness: 0.55 });
+  if (gear.head === 'matriarch') {
+    const band = mesh(new THREE.TorusGeometry(0.125, 0.01, 8, 40), std('#3c2c3e', { roughness: 0.6 }), head, 0, 0.1, -0.025);
+    band.rotation.x = Math.PI / 2 - 0.35;
+    for (let i = -3; i <= 3; i++) {
+      const a = i * 0.28;
+      const t = mesh(new THREE.ConeGeometry(0.01, 0.05, 6), BONE, head, Math.sin(a) * 0.125, 0.125 + Math.cos(a) * 0.01, Math.cos(a) * 0.12 - 0.04);
+      t.rotation.x = -0.25; t.rotation.z = -a * 0.6;
+    }
+    mesh(new THREE.OctahedronGeometry(0.016), glow('#a35cff', 1.2), head, 0, 0.115, 0.085);
+  }
+  if (gear.head === 'crown') {
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const len = 0.08 + 0.05 * (i % 2);
+      const g = group(head, Math.sin(a) * 0.1, 0.12, Math.cos(a) * 0.1 - 0.01);
+      g.rotation.z = -Math.sin(a) * 0.35; g.rotation.x = Math.cos(a) * 0.35;
+      mesh(new THREE.ConeGeometry(0.014, len, 6), BONE, g, 0, len / 2, 0);
+    }
+    const r = mesh(new THREE.TorusGeometry(0.105, 0.014, 8, 36), BONE, head, 0, 0.12, -0.01); r.rotation.x = Math.PI / 2;
+  }
+  if (gear.head === 'scope') {
+    const e = group(head, -0.055, 0.04, 0.13); e.rotation.y = -0.35;
+    mesh(new THREE.TorusGeometry(0.03, 0.006, 8, 24), std('#2a2c2e', { metalness: 0.9, roughness: 0.3 }), e);
+    mesh(new THREE.CircleGeometry(0.028, 24), new THREE.MeshStandardMaterial({ color: '#ff3b2f', emissive: '#ff2a1a', emissiveIntensity: 0.8, transparent: true, opacity: 0.55 }), e, 0, 0, 0.004);
+    const strap = mesh(new THREE.TorusGeometry(0.14, 0.006, 6, 40, Math.PI * 1.2), std('#2a2c2e'), head, 0, 0.04, 0.0); strap.rotation.x = Math.PI / 2; strap.rotation.z = Math.PI * 0.9;
+  }
+  if (gear.shoulder === 'scales') {
+    const sh = J.shL;
+    const SCALE = std('#4f5e46', { roughness: 0.45, metalness: 0.15 });
+    for (let row = 0; row < 3; row++) for (let i = 0; i < 6 - row; i++) {
+      const a = (i / (5 - row || 1) - 0.5) * 1.8;
+      const sc = mesh(ellGeo(0.04, 0.01, 0.03), SCALE, sh, 0.05 + row * 0.03, 0.07 - row * 0.045, Math.sin(a) * 0.07);
+      sc.rotation.set(0, a * 0.3, -0.5 - row * 0.35);
+    }
+    mesh(ellGeo(0.09 + 0.03 * m, 0.075, 0.09 + 0.025 * m), SCALE, sh, 0.02, 0.025, 0).rotation.z = 0.35;
+  }
+  if (gear.shoulder === 'ivory') {
+    const sh = J.shR;
+    for (let i = 0; i < 3; i++) {
+      const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push(new THREE.Vector3(-0.02 - t * 0.12, 0.08 - t * t * 0.1, (i - 1) * 0.06 + t * 0.03)); }
+      mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.018 - i * 0.002, 8), BONE, sh);
+    }
+    mesh(ellGeo(0.11 + 0.03 * m, 0.05, 0.1 + 0.02 * m), LEATHER, sh, -0.02, 0.06, 0).rotation.z = -0.4;
+  }
+  for (const s of [-1, 1]) {
+    const fo = J[s === 1 ? 'foL' : 'foR'];
+    const R = 0.048 + 0.022 * m;
+    if (gear.arms === 'wraps') for (let b = 0; b < 6; b++) {
+      const w = mesh(new THREE.TorusGeometry(R * (0.92 - b * 0.03), 0.014, 6, 28), std('#d9d1bf', { roughness: 1 }), fo, 0, -0.14 - b * 0.026, 0);
+      w.rotation.x = Math.PI / 2 + (b % 2 ? 0.12 : -0.12);
+    }
+    if (gear.arms === 'copper') {
+      const c = mesh(new THREE.CylinderGeometry(R * 1.02, R * 0.92, 0.1, 28, 1, true), std('#b0643a', { metalness: 0.85, roughness: 0.32, side: THREE.DoubleSide }), fo, 0, -0.2, 0);
+      for (const y of [-0.155, -0.245]) { const r = mesh(new THREE.TorusGeometry(R * (y > -0.2 ? 1.03 : 0.94), 0.007, 6, 28), std('#d38a54', { metalness: 0.9, roughness: 0.25 }), fo, 0, y, 0); r.rotation.x = Math.PI / 2; }
+      void c;
+    }
+    if (gear.arms === 'whip' && s === -1) {
+      const pts = []; for (let k = 0; k <= 60; k++) { const t = k / 60; const a = t * Math.PI * 2 * 4; pts.push(new THREE.Vector3(Math.cos(a) * R * 1.05, -0.08 - t * 0.17, Math.sin(a) * R * 1.05)); }
+      mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 200, 0.009, 6), std('#2c2f33', { metalness: 0.6, roughness: 0.4 }), fo);
+      const spark = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 200, 0.0035, 4), glow('#58b8ff', 2.2), fo);
+      spark.scale.setScalar(1.06); J.whip = spark;
+      mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.06, 12), std('#55595e', { metalness: 0.9, roughness: 0.3 }), J.handR, 0.05, -0.02, 0.02).rotation.z = 1.2;
+    }
+  }
+  if (gear.gourd) {
+    const gr = group(hips, 0.2 * (0.85 + 0.15 * m), waistY - 0.05, 0.06);
+    gr.rotation.z = 0.15;
+    const GOURD = std('#a7793c', { roughness: 0.55 });
+    mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.06, 6), LEATHER, gr, 0, -0.01, 0);
+    mesh(ellGeo(0.035, 0.04, 0.035), GOURD, gr, 0, -0.06, 0);
+    mesh(ellGeo(0.055, 0.065, 0.055), GOURD, gr, 0, -0.14, 0);
+    mesh(ellGeo(0.03, 0.006, 0.03), glow('#7cff8a', 1.2), gr, 0, -0.205, 0).castShadow = false;
+    mesh(new THREE.CylinderGeometry(0.012, 0.015, 0.025, 10), std('#4b3424'), gr, 0, -0.02, 0);
+  }
+  if (gear.charms.length) {
+    const pts = [];
+    for (let i = 0; i <= 16; i++) { const a = (i / 16) * Math.PI * 2; pts.push(new THREE.Vector3(Math.sin(a) * 0.15, 0.31 - (1 + Math.cos(a)) * 0.05, Math.cos(a) * 0.13 + 0.035)); }
+    mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 48, 0.005, 6, true), LEATHER, chest);
+    gear.charms.forEach((id, i) => {
+      const x = (i - (gear.charms.length - 1) / 2) * 0.07;
+      const top = onEllipsoid(plateC, plateR, x, 0.22 - Math.abs(x) * 0.25);
+      const g = group(chest, top.p.x, top.p.y + 0.02, top.p.z + 0.02);
+      if (id === 'tooth') { const t = mesh(new THREE.ConeGeometry(0.013, 0.06, 8), BONE, g, 0, -0.03, 0); t.rotation.x = Math.PI; }
+      if (id === 'feather') { const f = mesh(ellGeo(0.012, 0.045, 0.003), std('#8e8a83', { roughness: 0.8 }), g, 0, -0.04, 0); f.rotation.z = 0.25; mesh(ellGeo(0.004, 0.015, 0.004), DARK, g, 0.006, -0.075, 0); }
+      if (id === 'pearl') mesh(new THREE.SphereGeometry(0.017, 20, 16), new THREE.MeshStandardMaterial({ color: '#f5f2ec', roughness: 0.15, metalness: 0.1 }), g, 0, -0.02, 0);
+      if (id === 'nuru') { const b = mesh(new THREE.CapsuleGeometry(0.007, 0.04, 4, 8), BONE, g, 0, -0.03, 0); b.rotation.z = 1.2; mesh(new THREE.SphereGeometry(0.01, 10, 8), BONE, g, -0.022, -0.02, 0); mesh(new THREE.SphereGeometry(0.01, 10, 8), BONE, g, 0.022, -0.04, 0); }
+    });
+  }
+
+  root.userData.joints = J;
+  root.userData.height = S.height;
+  root.scale.setScalar(S.height / 2.0);
+  return root;
+}
+
+/* ------------------------------------------------------------------ poses */
+
+const POSES = {
+  rest: { spine: [0.08, 0, 0], chest: [-0.05, 0, 0], neck: [-0.05, 0, 0], head: [0.05, 0, 0],
+    up: [0.05, 0, 0.16], fo: [-0.25, 0, -0.04], hand: [0, 0, 0], th: [-0.32, 0, 0.04], sn: [0.95, 0, 0], mt: [-0.92, 0, 0], paw: [0.3, 0, 0], jaw: 0 },
+  guard: { spine: [0.3, 0, 0], chest: [0.05, 0, 0], neck: [-0.2, 0, 0], head: [-0.1, 0, 0],
+    up: [-0.75, 0, 0.3], fo: [-1.35, 0, -0.25], hand: [0.3, 0, 0], th: [-0.75, 0, 0.12], sn: [1.45, 0, 0], mt: [-1.1, 0, 0], paw: [0.4, 0, 0], jaw: 0.1 },
+  roar: { spine: [-0.08, 0, 0], chest: [-0.18, 0, 0], neck: [-0.45, 0, 0], head: [-0.25, 0, 0],
+    up: [-0.2, 0, 1.05], fo: [-0.75, 0, 0.3], hand: [-0.2, 0, 0], th: [-0.45, 0, 0.18], sn: [1.15, 0, 0], mt: [-1.0, 0, 0], paw: [0.3, 0, 0], jaw: 0.55 },
+};
+
+function applyPose(model, pose) {
+  const J = model.userData.joints, P = POSES[pose];
+  for (const k of ['spine', 'chest', 'neck', 'head']) J[k].rotation.set(...P[k]);
+  for (const s of [1, -1]) {
+    const side = s === 1 ? 'L' : 'R';
+    J['up' + side].rotation.set(P.up[0], P.up[1] * s, P.up[2] * s);
+    J['fo' + side].rotation.set(P.fo[0], P.fo[1] * s, P.fo[2] * s);
+    J['hand' + side].rotation.set(...P.hand);
+    J['th' + side].rotation.set(P.th[0], 0, P.th[2] * s);
+    J['sn' + side].rotation.set(...P.sn);
+    J['mt' + side].rotation.set(...P.mt);
+    J['paw' + side].rotation.set(...P.paw);
+  }
+  J.jaw.rotation.x = P.jaw;
+  J.mouth.visible = P.jaw > 0.3;
+  // Apoya las patas en el suelo.
+  model.position.y = 0;
+  model.updateMatrixWorld(true);
+  let minY = Infinity;
+  const v = new THREE.Vector3();
+  for (const side of ['L', 'R']) J['paw' + side].traverse((o) => { if (o.isMesh) { o.geometry.computeBoundingBox(); const b = o.geometry.boundingBox; for (const y of [b.min.y]) { v.set(0, y, 0); o.localToWorld(v); minY = Math.min(minY, v.y); } } });
+  model.position.y = -minY + 0.0;
+}
+
+/* ------------------------------------------------------------------ montaje */
+
+let models = [];
+function rebuild() {
+  for (const m of models) { scene.remove(m); m.traverse((o) => { if (o.isMesh) o.geometry !== SPH && o.geometry.dispose?.(); }); }
+  models = [];
+  const look = { fur: state.fur, pattern: state.pattern, crest: state.crest, eyes: state.eyes, paint: state.paint, scars: state.scars };
+  if (state.lineup) {
+    STAGES.forEach((s, i) => {
+      const mdl = buildTaji(i, look, i === state.stage ? state.gear : s.gear);
+      mdl.position.x = (i - 1.5) * 1.15;
+      models.push(mdl);
+    });
+  } else {
+    models.push(buildTaji(state.stage, look, state.gear));
+  }
+  for (const m of models) { applyPose(m, state.pose); m.userData.baseY = m.position.y; scene.add(m); }
+  frameCamera();
+  renderUI();
+}
+
+/* ------------------------------------------------------------------ cámara */
+
+const orbit = { yaw: 0.5, pitch: 0.08, dist: 5.2, target: new THREE.Vector3(0, 1.05, 0) };
+function frameCamera() {
+  const h = state.lineup ? 2.3 : STAGES[state.stage].height;
+  orbit.target.set(0, h * 0.52, 0);
+  orbit.dist = state.lineup ? 9.5 : 2.2 + h * 1.55;
+}
+function placeCamera() {
+  const { yaw, pitch, dist, target } = orbit;
+  camera.position.set(target.x + Math.sin(yaw) * Math.cos(pitch) * dist, target.y + Math.sin(pitch) * dist, target.z + Math.cos(yaw) * Math.cos(pitch) * dist);
+  camera.lookAt(target);
+}
+let drag = null;
+canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); setSpin(false); });
+canvas.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  orbit.yaw -= (e.clientX - drag.x) * 0.008;
+  orbit.pitch = THREE.MathUtils.clamp(orbit.pitch + (e.clientY - drag.y) * 0.005, -0.15, 1.1);
+  drag = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener('pointerup', () => { drag = null; });
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); orbit.dist = THREE.MathUtils.clamp(orbit.dist * (1 + Math.sign(e.deltaY) * 0.08), 1.2, 14); }, { passive: false });
+
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / Math.max(1, r.height);
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas);
+
+/* ------------------------------------------------------------------ animación */
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clock = new THREE.Clock();
+function tick() {
+  const t = clock.getElapsedTime();
+  const dt = Math.min(0.05, clock.getDelta());
+  if (state.spin && !reduce) orbit.yaw += 0.25 * (1 / 60);
+  models.forEach((m, i) => {
+    const J = m.userData.joints;
+    const b = Math.sin(t * 1.7 + i);
+    J.chest.scale.set(1 + 0.006 * b, 1 + 0.01 * b, 1 + 0.012 * b);
+    J.tail.rotation.y = Math.sin(t * 0.9 + i) * 0.18;
+    J.tail.rotation.x = Math.sin(t * 0.6 + i) * 0.05;
+    const st = STAGES[state.lineup ? i : state.stage];
+    const pulse = st.glow === 'flicker' ? (Math.sin(t * 13) > 0.6 ? 0.4 : 1) * (0.7 + 0.3 * Math.sin(t * 3)) : 0.75 + 0.25 * Math.sin(t * 2.4);
+    if (J.stone.material.emissive) J.stone.material.emissiveIntensity = 1.5 * pulse;
+    J.stoneLight.intensity = (st.glow === 'gold' ? 0.12 : 0.22) * pulse;
+    J.veinMat.emissiveIntensity = 0.9 * pulse;
+    J.crestMat.emissiveIntensity = 0.25 + 0.2 * pulse;
+    if (J.whip) J.whip.material.emissiveIntensity = Math.random() > 0.85 ? 4 : 1.6;
+    if (J.scarMat && st.scars === 'gold') J.scarMat.emissiveIntensity = 1.2 + 0.6 * Math.sin(t * 2);
+  });
+  void dt;
+  placeCamera();
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+
+/* ------------------------------------------------------------------ interfaz */
+
+const $ = (s) => document.querySelector(s);
+const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); e.innerHTML = html; return e; };
+
+function setSpin(v) { state.spin = v; $('#spin').setAttribute('aria-pressed', String(v)); }
+$('#spin').addEventListener('click', () => setSpin(!state.spin));
+$('#lineup').addEventListener('click', () => { state.lineup = !state.lineup; $('#lineup').setAttribute('aria-pressed', String(state.lineup)); rebuild(); });
+document.querySelectorAll('[data-pose]').forEach((b) => b.addEventListener('click', () => {
+  state.pose = b.dataset.pose;
+  document.querySelectorAll('[data-pose]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  for (const m of models) applyPose(m, state.pose);
+}));
+document.querySelectorAll('[role=tab]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[role=tab]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+  for (const id of ['age', 'look', 'gear']) $('#pane-' + id).hidden = id !== b.dataset.tab;
+}));
+
+function seg(items, current, onPick) {
+  const wrap = el('div', { class: 'seg' });
+  for (const it of items) {
+    const b = el('button', { 'aria-pressed': String(it.id === current), type: 'button' }, it.name);
+    b.addEventListener('click', () => onPick(it.id));
+    wrap.append(b);
+  }
+  return wrap;
+}
+function grp(title, ...children) { const g = el('div', { class: 'group' }); g.append(el('h2', {}, title), ...children); return g; }
+function optCard(it, pressed, onPick) {
+  const b = el('button', { class: 'opt', type: 'button', 'aria-pressed': String(pressed) });
+  b.innerHTML = `<strong>${it.name}</strong>` + (it.fx ? `<span class="fx"><em>+</em> ${it.fx}${it.cost && it.cost !== 'Ninguno' ? ` · <i>−</i> ${it.cost}` : ''}</span>` : '') + (it.src ? `<span class="src">${it.src}</span>` : '');
+  b.addEventListener('click', onPick);
+  return b;
+}
+
+function renderUI() {
+  const S = STAGES[state.stage];
+  $('#moment').textContent = state.lineup ? 'Las cuatro edades, de joven a rey' : `${S.name} · ${S.moment}`;
+  $('#stats').innerHTML = state.lineup ? '' : [
+    [S.age, 'Edad'], [`${S.height.toFixed(2)} m`, 'Altura'], [`${Math.round(S.muscle * 100)}`, 'Fuerza'],
+    [S.glow === 'gold' ? 'Manada' : `${Math.round(S.crest * 7)}/7`, S.glow === 'gold' ? 'Poder' : 'Fragmentos'],
+  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+
+  // Edad
+  const pa = $('#pane-age'); pa.replaceChildren();
+  const ages = el('div', { class: 'ages' });
+  STAGES.forEach((s, i) => {
+    const b = el('button', { class: 'age', type: 'button', 'aria-pressed': String(i === state.stage) }, `<span class="n">${s.n}</span><strong>${s.name} · ${s.age}</strong><small>${s.desc}</small>`);
+    b.addEventListener('click', () => { state.stage = i; state.gear = structuredClone(s.gear); rebuild(); });
+    ages.append(b);
+  });
+  pa.append(grp('Taji crece con la historia', ages), el('p', { class: 'note' }, 'Al cambiar de edad se pone el equipo típico de ese momento. Puedes cambiarlo en «Equipo».'));
+
+  // Aspecto
+  const pl = $('#pane-look'); pl.replaceChildren();
+  const sws = el('div', { class: 'swatches' });
+  for (const f of FURS) {
+    const b = el('button', { class: 'sw', type: 'button', 'aria-pressed': String(f.id === state.fur), 'aria-label': f.name, title: `${f.name} · ${f.src}` });
+    b.style.background = `radial-gradient(circle at 35% 35%, ${f.spot} 0 9%, transparent 10%), radial-gradient(circle at 68% 60%, ${f.spot} 0 8%, transparent 9%), ${f.base}`;
+    b.addEventListener('click', () => { state.fur = f.id; rebuild(); });
+    sws.append(b);
+  }
+  const fur = FURS.find((f) => f.id === state.fur);
+  pl.append(
+    grp('Pelaje', sws, el('span', { class: 'swlabel' }, `${fur.name} · se consigue: ${fur.src.toLowerCase()}`)),
+    grp('Manchas de la piedra', seg(PATTERNS, state.pattern, (id) => { state.pattern = id; rebuild(); })),
+    grp('Cresta', seg(CRESTS, state.crest, (id) => { state.crest = id; rebuild(); })),
+    grp('Ojos', seg(EYES, state.eyes, (id) => { state.eyes = id; rebuild(); })),
+    grp('Pintura de guerra', seg(PAINTS, state.paint, (id) => { state.paint = id; rebuild(); })),
+  );
+  const tg = el('label', { class: 'toggle' }, `<input type="checkbox" id="scars" ${state.scars ? 'checked' : ''}> Mostrar cicatrices`);
+  tg.querySelector('input').addEventListener('change', (e) => { state.scars = e.target.checked; rebuild(); });
+  pl.append(grp('Cicatrices', tg));
+
+  // Equipo
+  const pg = $('#pane-gear'); pg.replaceChildren();
+  for (const [slot, def] of Object.entries(GEAR)) {
+    const list = el('div', { class: 'opts' });
+    for (const it of def.items) list.append(optCard(it, state.gear[slot] === it.id, () => { state.gear[slot] = it.id; rebuild(); }));
+    pg.append(grp(def.label, list));
+  }
+  const gl = el('div', { class: 'opts' });
+  gl.append(optCard({ name: 'Calabaza de savia', fx: 'La curación: 3 cargas, se rellena en los altares', src: 'Inicial · mejora con semillas' }, state.gear.gourd, () => { state.gear.gourd = !state.gear.gourd; rebuild(); }));
+  pg.append(grp('Cadera', gl));
+  const cl = el('div', { class: 'opts' });
+  for (const c of CHARMS) cl.append(optCard(c, state.gear.charms.includes(c.id), () => {
+    const i = state.gear.charms.indexOf(c.id);
+    if (i >= 0) state.gear.charms.splice(i, 1); else { state.gear.charms.push(c.id); if (state.gear.charms.length > 3) state.gear.charms.shift(); }
+    rebuild();
+  }));
+  pg.append(grp(`Talismanes · ${state.gear.charms.length}/3`, cl));
+}
+
+window.taji = { state, rebuild, setStage: (i) => { state.stage = i; state.gear = structuredClone(STAGES[i].gear); rebuild(); }, applyPose: (p) => { state.pose = p; for (const m of models) applyPose(m, p); }, orbit, setSpin, frameCamera, render: () => { placeCamera(); renderer.render(scene, camera); } };
+
+resize();
+rebuild();
+tick();
+</script>
