@@ -12,6 +12,7 @@ import {
   type AbilityId,
 } from '../../systems/progression';
 import { useTicker } from '../useTicker';
+import { input, PAD_LABELS } from '../../core/input';
 
 /** Iconos de tinta de cada habilidad (mismo dibujo que en el diseño de Figma). */
 const ICONS: Record<string, ReactNode> = {
@@ -64,6 +65,7 @@ function read() {
     inFight: combat.active,
     guarding: defense.guarding,
     dropped: progression.dropped?.amount ?? 0,
+    pad: input.lastDevice === 'pad',
   };
 }
 
@@ -131,8 +133,8 @@ export function AbilityBar() {
             </span>
           </div>
         </div>
-        <Slot icon="claw" keyLabel="CLIC" title="Zarpazo (encadena hasta 4)" />
-        <Slot icon="bite" keyLabel="CLIC D" title="Mordisco (golpe de gracia si la postura está rota)" />
+        <Slot icon="claw" keyLabel={s.pad ? PAD_LABELS.attack! : 'CLIC'} title="Zarpazo (encadena hasta 4)" />
+        <Slot icon="bite" keyLabel={s.pad ? PAD_LABELS.heavy! : 'CLIC D'} title="Mordisco (golpe de gracia si la postura está rota)" />
         <span className="mb-6 h-12 w-px bg-bone/30" />
         {ABILITY_ORDER.map((id) => {
           const def = ABILITIES[id];
@@ -143,7 +145,7 @@ export function AbilityBar() {
             <Slot
               key={id}
               icon={ABILITY_ICON[id]}
-              keyLabel={def.key}
+              keyLabel={s.pad ? PAD_LABELS[`ability${ABILITY_ORDER.indexOf(id) + 1}` as 'ability1']! : def.key}
               title={`${def.name}${rank ? ` (rango ${rank})` : ''}: ${def.description}`}
               cd={isUlt ? (rank ? 1 - s.fury : 0) : total > 0 ? s.cooldowns[id] / total : 0}
               seconds={isUlt ? 0 : s.cooldowns[id]}
@@ -154,7 +156,7 @@ export function AbilityBar() {
           );
         })}
         <span className="mb-6 h-12 w-px bg-bone/30" />
-        <Slot icon="leaf" keyLabel="1" title="Hojas medicinales: curan un 35 %" count={s.healing} />
+        <Slot icon="leaf" keyLabel={s.pad ? PAD_LABELS.heal! : '1'} title="Hojas medicinales: curan un 35 %" count={s.healing} />
       </div>
       <div className="w-[520px] space-y-1">
         <div className="relative h-3.5 overflow-hidden rounded-[2px] border border-[#b9a47d]/70 bg-black/55">

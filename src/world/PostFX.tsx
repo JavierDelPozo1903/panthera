@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import { useGame, useQuality } from '../core/store';
 import { player } from '../entities/player/playerState';
 import { atmosphere } from './atmosphereState';
+import { senses } from '../systems/senses';
 
 /**
  * Gradación «documental de naturaleza»: color fiel algo contenido, sombras ligeramente
@@ -31,6 +32,7 @@ class DocumentaryGradeEffect extends Effect {
         uniform float uSplit;
         uniform vec3 uShadowTint;
         uniform vec3 uHighlightTint;
+        uniform float uSense;
         void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
           vec3 c = inputColor.rgb;
           float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -40,6 +42,16 @@ class DocumentaryGradeEffect extends Effect {
           c += uSplit * (uShadowTint * shadows + uHighlightTint * highlights);
           // Negros levantados y altas comprimidas: curva suave de película.
           c = c * 0.965 + 0.01;
+          // Modo sensorial: el mundo se apaga y enfría; solo lo muy saturado (los rastros) conserva el color.
+          if (uSense > 0.0) {
+            float chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+            float keep = smoothstep(0.16, 0.38, chroma);
+            float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+            vec3 g = mix(vec3(lum * 0.7) * vec3(0.82, 0.92, 1.08), c * 1.15, keep);
+            float r = distance(uv, vec2(0.5));
+            g *= 1.0 - smoothstep(0.22, 0.78, r) * 0.6;
+            c = mix(c, g, uSense);
+          }
           outputColor = vec4(max(c, 0.0), inputColor.a);
         }
       `,
@@ -48,6 +60,7 @@ class DocumentaryGradeEffect extends Effect {
           ['uSaturation', new THREE.Uniform(0.92)],
           ['uSplit', new THREE.Uniform(1)],
           ['uShadowTint', new THREE.Uniform(new THREE.Vector3(-0.012, 0.004, 0.018))],
+          ['uSense', new THREE.Uniform(0)],
           ['uHighlightTint', new THREE.Uniform(new THREE.Vector3(0.024, 0.012, -0.014))],
         ]),
       },
@@ -79,6 +92,7 @@ export function PostFX() {
     // R3F copia `target` solo al montar: el foco se actualiza a mano cada frame.
     dof.current?.target?.copy(focus);
     grade.uniforms.get('uSaturation')!.value = 0.93 - 0.25 * atmosphere.night;
+    grade.uniforms.get('uSense')!.value = senses.level;
   });
 
   if (!quality.postprocessing) return null;

@@ -6,6 +6,7 @@ import { initHerds } from '../ai/preyBrain';
 import { resetWildBrain } from '../ai/wildLionBrain';
 import { initMatriarch } from '../ai/matriarchBrain';
 import { resetDens } from '../systems/dens';
+import { resetSenses } from '../systems/senses';
 import { resetDefense } from '../systems/playerDefense';
 import { progression, resetProgression, ATTRIBUTES } from '../systems/progression';
 import { resetCombat } from '../systems/combat';
@@ -89,6 +90,7 @@ function setupNewLitter(seed: number): void {
   initRegions(world, den.motherX, den.motherZ);
   initMatriarch(world, den.motherX, den.motherZ);
   resetDefense();
+  resetSenses();
   resetExploration();
   setAge(START_AGE_YEARS);
   bumpFamily();
@@ -124,6 +126,7 @@ export function startNewLife(sex: Sex, profile?: Partial<typeof playerProfile>, 
   const deltas = SPECIES[playerProfile.species].attributes;
   for (const a of ATTRIBUTES) progression.attributes[a] = 10 + (deltas[a] ?? 0);
   resetDefense();
+  resetSenses();
   bumpFamily();
   clock.reset();
   clock.timeOfDay = 6.45;
@@ -191,6 +194,7 @@ export async function continueLife(): Promise<void> {
     resetDens(save.souls.dens, save.souls.lastDenId);
     initMatriarch(world, save.family.home[0], save.family.home[1]);
     resetDefense();
+    resetSenses();
   }
   resetPlayer(save.player.x, save.player.y, save.player.z, save.player.heading);
   player.stamina = save.player.stamina;
@@ -252,6 +256,7 @@ export function continueAsChild(child: WildLion): void {
   for (const a of ATTRIBUTES) attributes[a] = 10 + Math.floor((prev.attributes[a] - 10) / 3);
   resetProgression({ level: Math.max(1, Math.ceil(prev.level / 3)), attributes, relics: prev.relics.slice(0, 1) });
   resetDefense();
+  resetSenses();
   setAge(child.ageYears);
   bumpFamily();
   recordMilestone(`legacy:${child.name}`, `Legado: la estirpe continúa con ${child.name}, ${child.sex === 'male' ? 'tu hijo' : 'tu hija'}`);

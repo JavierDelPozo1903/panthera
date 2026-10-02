@@ -55,6 +55,7 @@ export function GameLoop() {
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.1);
+    input.combatLayer = combat.active;
     input.update();
     sharedUniforms.uTime.value += dt;
 

@@ -22,6 +22,7 @@ import { createWildLion, wildLions } from '../entities/npc/wildLions';
 import { territories } from '../world/territories';
 import { bosses, matriarch } from '../ai/matriarchBrain';
 import { progression } from '../systems/progression';
+import { senses } from '../systems/senses';
 
 /**
  * Consola de depuración (solo en desarrollo): `window.__panthera` permite inspeccionar
@@ -44,6 +45,7 @@ export function installDebugHooks(get: unknown): void {
     cameraState,
     audio,
     herds,
+    senses,
     groupHunt,
     takedown,
     skipStage: skipToNextStage,

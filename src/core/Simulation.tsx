@@ -29,6 +29,7 @@ import { BODY_PART_LABEL, partWithArticle, playerBody, updateWounds } from '../s
 import { pruneMarks } from '../world/territories';
 import { updateQuests } from '../systems/quests';
 import { updateRegions } from '../world/regions';
+import { updateSenses } from '../systems/senses';
 import { clock } from './clock';
 import { events } from './events';
 import { mulberry32 } from './math';
@@ -124,6 +125,7 @@ export function Simulation() {
     updateCombat(world, dt, rng);
     updateMatriarch(world, dt);
     updateRegions(dt);
+    updateSenses(dt);
     updateDefense(dt, furyActive() ? 2 : 1);
     tickAbilities(dt);
     // Esencia por cazar y por ganar peleas.

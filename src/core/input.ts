@@ -89,6 +89,41 @@ const PAD_BINDINGS: Partial<Record<Action, number[]>> = {
   social: [11], // R3
 };
 
+/**
+ * Capa de combate del mando (al estilo souls): mientras hay pelea, los gatillos y la cruceta
+ * pasan a atacar, bloquear y lanzar habilidades. Sustituye a la capa normal salvo en pausa.
+ */
+const PAD_COMBAT: Partial<Record<Action, number[]>> = {
+  attack: [5], // RB
+  heavy: [7], // RT
+  guard: [4], // LB
+  dodge: [1], // B / Círculo
+  jump: [0], // A / Cruz
+  heal: [2], // X / Cuadrado
+  lockOn: [11], // R3
+  ability1: [14], // Cruceta izquierda
+  ability2: [12], // Cruceta arriba
+  ability3: [15], // Cruceta derecha
+  ability4: [13], // Cruceta abajo
+  sprint: [10], // L3
+  pause: [9],
+  hints: [8],
+};
+
+/** Etiqueta del botón de mando de cada acción de combate (para la barra de habilidades). */
+export const PAD_LABELS: Partial<Record<Action, string>> = {
+  attack: 'RB',
+  heavy: 'RT',
+  guard: 'LB',
+  dodge: 'B',
+  heal: 'X',
+  lockOn: 'R3',
+  ability1: '◀',
+  ability2: '▲',
+  ability3: '▶',
+  ability4: '▼',
+};
+
 const PREVENT_DEFAULT = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab']);
 const STICK_DEADZONE = 0.18;
 
@@ -112,6 +147,10 @@ class InputManager {
   /** Última fuente de movimiento analógica (para elegir paso/trote). */
   analog = false;
   pointerLocked = false;
+  /** Si el mando usa la capa de combate (lo fija el bucle del juego). */
+  combatLayer = false;
+  /** Último dispositivo usado: la interfaz muestra teclas o botones según este. */
+  lastDevice: 'keyboard' | 'pad' = 'keyboard';
 
   private keys = new Set<string>();
   private pressed = new Set<Action>();
@@ -131,6 +170,7 @@ class InputManager {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isFormField(e.target)) return;
       if (PREVENT_DEFAULT.has(e.code)) e.preventDefault();
+      this.lastDevice = 'keyboard';
       if (!e.repeat) for (const a of codeToActions.get(e.code) ?? []) this.pressed.add(a);
       this.keys.add(e.code);
     };
@@ -213,7 +253,9 @@ class InputManager {
       pz = -deadzone(pad.axes[1] ?? 0);
       this.padLookX = deadzone(pad.axes[2] ?? 0);
       this.padLookY = deadzone(pad.axes[3] ?? 0);
-      for (const [action, buttons] of Object.entries(PAD_BINDINGS) as [Action, number[]][]) {
+      if (pad.buttons.some((b) => b.pressed) || Math.hypot(px, pz) > 0.3) this.lastDevice = 'pad';
+      const layer = this.combatLayer ? PAD_COMBAT : PAD_BINDINGS;
+      for (const [action, buttons] of Object.entries(layer) as [Action, number[]][]) {
         if (buttons.some((b) => pad.buttons[b]?.pressed)) {
           this.padDown.add(action);
           if (!prevPad.has(action)) this.pressed.add(action);

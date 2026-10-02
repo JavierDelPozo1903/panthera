@@ -33,6 +33,7 @@ import { TakedownBar } from './hud/TakedownBar';
 import { Toasts } from './hud/Toasts';
 import { Minimap } from './Minimap';
 import { useTicker } from './useTicker';
+import { senses } from '../systems/senses';
 
 const GAIT_LABEL: Record<PlayerGait, string> = {
   idle: 'Quieto',
@@ -69,6 +70,7 @@ function readHud() {
     cover: player.cover,
     visibility: player.visibility,
     crouching: player.crouching,
+    sense: senses.level,
     biome: player.biome,
     speedKmh: player.speed * 3.6,
     walkMode: player.walkMode,
@@ -106,6 +108,7 @@ export function HUD() {
               {hud.speedKmh > 1 && <span className="ml-2 tabular-nums text-bone/50">{hud.speedKmh.toFixed(0)} km/h</span>}
             </p>
             <VisibilityMeter visibility={hud.visibility} crouching={hud.crouching} />
+            {hud.sense > 0.3 && <SenseLegend />}
             <StaminaBar stamina={hud.stamina} exhausted={hud.exhausted} />
           </div>
         </div>
@@ -280,6 +283,27 @@ function VisibilityMeter({ visibility, crouching }: { visibility: number; crouch
         {label}
         {crouching && ' · agachado'}
       </span>
+    </div>
+  );
+}
+
+/** Leyenda del modo sensorial (agachado): qué significa cada color del olfato. */
+function SenseLegend() {
+  const items: [string, string][] = [
+    ['#ff8c1f', 'presa'],
+    ['#73d940', 'hiena'],
+    ['#f2301f', 'león'],
+    ['#a64dff', 'leyenda'],
+  ];
+  return (
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[10px] italic text-bone/70">
+      <span className="not-italic uppercase tracking-[0.18em] text-bone/50">Olfato</span>
+      {items.map(([c, l]) => (
+        <span key={l} className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full" style={{ background: c, boxShadow: `0 0 6px ${c}` }} />
+          {l}
+        </span>
+      ))}
     </div>
   );
 }
